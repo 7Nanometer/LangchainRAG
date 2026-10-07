@@ -8,14 +8,18 @@ import { formatTime } from '@/utils/format'
 
 const chat = useChatStore()
 const router = useRouter()
+// 手机端在抽屉里使用时，选中后通知父组件关闭抽屉
+const emit = defineEmits(['navigate'])
 
 function goNew() {
   chat.newChat()
   router.push('/chat')
+  emit('navigate')
 }
 
 function open(id) {
   if (chat.currentId !== id) router.push(`/chat/${id}`)
+  emit('navigate')
 }
 
 async function onRename(conv) {

@@ -38,5 +38,5 @@ echo.
 rem 等服务起来后再打开浏览器（等 5 秒）
 start "" cmd /c "timeout /t 5 >nul & start http://127.0.0.1:%SERVICE_PORT%"
 
-"%VENV_PY%" -m uvicorn app.main:app --host 127.0.0.1 --port %SERVICE_PORT%
+"%VENV_PY%" -m uvicorn app.main:app --host %SERVICE_HOST% --port %SERVICE_PORT%
 pause

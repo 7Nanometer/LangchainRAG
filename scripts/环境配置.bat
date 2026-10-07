@@ -16,3 +16,8 @@ set "BACKUP_DIR=%DATA_DIR%\backups"
 
 rem 服务端口（浏览器访问 http://127.0.0.1:8000）
 set "SERVICE_PORT=8000"
+
+rem 服务监听地址：
+rem   127.0.0.1 = 只有本机能用（默认，最安全）
+rem   0.0.0.0   = 局域网内的手机/其他电脑也能访问（详见运维手册第五节）
+set "SERVICE_HOST=127.0.0.1"

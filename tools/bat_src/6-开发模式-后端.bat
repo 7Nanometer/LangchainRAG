@@ -11,5 +11,5 @@ if not exist "%VENV_PY%" (
 
 cd /d "%PROJECT_DIR%\backend"
 echo 后端开发服务（修改代码后自动重启）：http://127.0.0.1:%SERVICE_PORT%
-"%VENV_PY%" -m uvicorn app.main:app --host 127.0.0.1 --port %SERVICE_PORT% --reload
+"%VENV_PY%" -m uvicorn app.main:app --host %SERVICE_HOST% --port %SERVICE_PORT% --reload
 pause

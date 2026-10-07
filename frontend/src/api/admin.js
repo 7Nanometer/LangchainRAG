@@ -15,3 +15,10 @@ export const uploadDocuments = (kbId, formData) =>
   request.post(`/admin/kb/${kbId}/documents`, formData, { timeout: 300000 })
 export const deleteDocument = (id) => request.delete(`/admin/documents/${id}`)
 export const reindexDocument = (id) => request.post(`/admin/documents/${id}/reindex`)
+
+// ---- 数据看板 ----
+export const getStatsOverview = () => request.get('/admin/stats/overview')
+export const getStatsTrend = (days = 14) => request.get('/admin/stats/trend', { params: { days } })
+export const getTopDocuments = () => request.get('/admin/stats/top-documents')
+export const getUnanswered = () => request.get('/admin/stats/unanswered')
+export const getSystemStatus = () => request.get('/admin/stats/system')

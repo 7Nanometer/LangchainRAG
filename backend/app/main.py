@@ -11,6 +11,7 @@
 import logging
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,6 +51,10 @@ async def lifespan(_app: FastAPI):
     warm_up_async()
     reranker_warm_up()
     bm25_warm_up()
+    # 记录启动时间（数据看板展示"运行时长"用）
+    from .api import admin_stats
+
+    admin_stats.app_start_time = datetime.now()
     logger.info("=" * 56)
     logger.info(" LangchainRAG 知识库问答系统已启动")
     logger.info(" 浏览器访问：http://%s:%s", settings.host, settings.port)

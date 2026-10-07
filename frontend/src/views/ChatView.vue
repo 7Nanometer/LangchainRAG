@@ -1,10 +1,11 @@
 <script setup>
 /**
  * 聊天主页：左侧会话列表 + 中间消息区 + 底部输入框
- * 支持流式打字机效果、引用展示、历史会话找回
+ * 桌面端侧栏常显；手机端（<768px）侧栏收进抽屉，由顶部按钮唤出
  */
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Menu as MenuIcon } from '@element-plus/icons-vue'
 import { useChatStore } from '@/stores/chat'
 import ConversationSidebar from '@/components/chat/ConversationSidebar.vue'
 import MessageItem from '@/components/chat/MessageItem.vue'
@@ -16,6 +17,15 @@ const router = useRouter()
 const chat = useChatStore()
 const scrollRef = ref()
 
+// ---------- 手机端适配 ----------
+const isMobile = ref(window.innerWidth < 768)
+const drawerVisible = ref(false)
+
+function onResize() {
+  isMobile.value = window.innerWidth < 768
+  if (!isMobile.value) drawerVisible.value = false
+}
+
 // 生成中的"虚拟消息"：复用 MessageItem 渲染打字机效果
 const streamingMessage = computed(() => ({
   id: 'streaming',
@@ -26,10 +36,15 @@ const streamingMessage = computed(() => ({
 }))
 
 onMounted(async () => {
+  window.addEventListener('resize', onResize)
   await chat.loadConversations()
   const id = route.params.id
   if (id) await chat.openConversation(Number(id))
   else chat.newChat()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize)
 })
 
 // URL → 状态（用户在侧栏点会话、或直接输网址时）
@@ -66,9 +81,29 @@ watch(() => chat.streamText, scrollToBottom)
 
 <template>
   <div class="chat-page">
-    <ConversationSidebar />
+    <!-- 桌面端：侧栏常显 -->
+    <ConversationSidebar v-if="!isMobile" />
+
+    <!-- 手机端：侧栏放进抽屉 -->
+    <el-drawer
+      v-if="isMobile"
+      v-model="drawerVisible"
+      direction="ltr"
+      size="260px"
+      :with-header="false"
+      class="conv-drawer"
+    >
+      <ConversationSidebar @navigate="drawerVisible = false" />
+    </el-drawer>
 
     <div class="chat-main">
+      <!-- 手机端顶部细栏 -->
+      <div v-if="isMobile" class="mobile-bar">
+        <el-button text :icon="MenuIcon" @click="drawerVisible = true">会话</el-button>
+        <span class="mobile-title">知识库智能客服</span>
+        <span class="mobile-spacer" />
+      </div>
+
       <div ref="scrollRef" class="messages-area">
         <WelcomePanel v-if="chat.isEmpty" @ask="chat.send" />
         <div v-else class="messages-inner">
@@ -104,5 +139,32 @@ watch(() => chat.streamText, scrollToBottom)
   max-width: 900px;
   margin: 0 auto;
   padding: 20px 20px 8px;
+}
+.mobile-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  flex-shrink: 0;
+}
+.mobile-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.mobile-spacer {
+  flex: 1;
+}
+</style>
+
+<style>
+/* 抽屉里的侧栏撑满（el-drawer 渲染到 body，需全局样式） */
+.conv-drawer .el-drawer__body {
+  padding: 0;
+}
+.conv-drawer .sidebar {
+  width: 100%;
+  border-right: none;
 }
 </style>

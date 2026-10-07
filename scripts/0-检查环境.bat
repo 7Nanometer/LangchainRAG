@@ -1,30 +1,29 @@
 @echo off
-chcp 65001 >nul
-title ç¯å¢ƒæ£€æŸ¥
+title »·¾³¼ì²é
 cd /d "%~dp0"
-call "ç¯å¢ƒé…ç½®.bat"
+call "%~dp0»·¾³ÅäÖÃ.bat"
 
 echo.
 echo ============================================
-echo   ç”µè„‘ç¯å¢ƒæ£€æŸ¥ï¼ˆè£…ç³»ç»Ÿå‰å…ˆè·‘è¿™ä¸ªçœ‹çœ‹ï¼‰
+echo   µçÄÔ»·¾³¼ì²é£¨×°ÏµÍ³Ç°ÏÈÅÜÕâ¸ö¿´¿´£©
 echo ============================================
 echo.
-echo [1/4] Pythonï¼ˆåç«¯ç¨‹åºçš„è¿è¡Œç¯å¢ƒï¼‰
+echo [1/4] Python£¨ºó¶Ë³ÌĞòµÄÔËĞĞ»·¾³£©
 python --version 2>nul
-if errorlevel 1 echo    [ç¼ºå¤±] æ²¡æ‰¾åˆ° Pythonï¼Œéœ€è¦å…ˆå®‰è£… Python 3.13
+if errorlevel 1 echo    [È±Ê§] Ã»ÕÒµ½ Python£¬ĞèÒªÏÈ°²×° Python 3.13
 echo.
-echo [2/4] Node.jsï¼ˆå‰ç«¯ç•Œé¢çš„æ„å»ºå·¥å…·ï¼‰
+echo [2/4] Node.js£¨Ç°¶Ë½çÃæµÄ¹¹½¨¹¤¾ß£©
 node --version 2>nul
-if errorlevel 1 echo    [ç¼ºå¤±] æ²¡æ‰¾åˆ° Node.jsï¼Œéœ€è¦å…ˆå®‰è£…
-npm --version 2>nul
+if errorlevel 1 echo    [È±Ê§] Ã»ÕÒµ½ Node.js£¬ĞèÒªÏÈ°²×°
+call npm --version 2>nul
 echo.
-echo [3/4] æ˜¾å¡ï¼ˆæœ¬åœ° AI æ¨¡å‹é å®ƒåŠ é€Ÿï¼‰
+echo [3/4] ÏÔ¿¨£¨±¾µØ AI Ä£ĞÍ¿¿Ëü¼ÓËÙ£©
 nvidia-smi --query-gpu=name,memory.total --format=csv 2>nul
-if errorlevel 1 echo    [æç¤º] æ²¡æ£€æµ‹åˆ° NVIDIA æ˜¾å¡ï¼Œæ¨¡å‹ä¼šæ”¹ç”¨ CPU è¿è¡Œï¼ˆæ…¢ä¸€äº›ä½†ä¸å½±å“åŠŸèƒ½ï¼‰
+if errorlevel 1 echo    [ÌáÊ¾] Ã»¼ì²âµ½ NVIDIA ÏÔ¿¨£¬Ä£ĞÍ»á¸ÄÓÃ CPU ÔËĞĞ£¨ÂıÒ»Ğ©µ«²»Ó°Ïì¹¦ÄÜ£©
 echo.
-echo [4/4] ç£ç›˜ç©ºé—´ï¼ˆæ˜¯å¦å¤Ÿè£…ï¼‰
-powershell -NoProfile -Command "Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,VolumeName,@{n='å‰©ä½™GB';e={[math]::Round($_.FreeSpace/1GB,1)}} | Format-Table -AutoSize"
+echo [4/4] ´ÅÅÌ¿Õ¼ä£¨ÊÇ·ñ¹»×°£©
+powershell -NoProfile -Command "Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID,VolumeName,@{n='Ê£ÓàGB';e={[math]::Round($_.FreeSpace/1GB,1)}} | Format-Table -AutoSize"
 echo.
-echo E ç›˜æ”¾ä»£ç å’Œæ•°æ®ï¼ˆçº¦éœ€ 1GBï¼‰ï¼›F ç›˜æ”¾å·¥å…·å’Œæ¨¡å‹ï¼ˆçº¦éœ€ 12GBï¼‰
+echo E ÅÌ·Å´úÂëºÍÊı¾İ£¨Ô¼Ğè 1GB£©£»F ÅÌ·Å¹¤¾ßºÍÄ£ĞÍ£¨Ô¼Ğè 12GB£©
 echo.
 pause

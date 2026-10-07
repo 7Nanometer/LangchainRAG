@@ -1,24 +1,23 @@
 @echo off
-chcp 65001 >nul
-title å¤‡ä»½æ•°æ®
+title ±¸·İÊı¾İ
 cd /d "%~dp0"
-call "ç¯å¢ƒé…ç½®.bat"
+call "%~dp0»·¾³ÅäÖÃ.bat"
 
 echo.
 echo ============================================
-echo   å¤‡ä»½æ•°æ®ï¼ˆè´¦å·ã€èŠå¤©è®°å½•ã€çŸ¥è¯†åº“ã€ä¸Šä¼ çš„æ–‡ä»¶ï¼‰
-echo   å»ºè®®å…ˆå…³é—­ç³»ç»Ÿçª—å£å†å¤‡ä»½ï¼Œæ•°æ®æ›´å®Œæ•´
+echo   ±¸·İÊı¾İ£¨ÕËºÅ¡¢ÁÄÌì¼ÇÂ¼¡¢ÖªÊ¶¿â¡¢ÉÏ´«µÄÎÄ¼ş£©
+echo   ½¨ÒéÏÈ¹Ø±ÕÏµÍ³´°¿ÚÔÙ±¸·İ£¬Êı¾İ¸üÍêÕû
 echo ============================================
 echo.
 
 if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%"
 if not exist "%PROJECT_DIR%\backend\data" (
-  echo [æç¤º] è¿˜æ²¡æœ‰ä»»ä½•æ•°æ®ï¼Œæ— éœ€å¤‡ä»½
+  echo [ÌáÊ¾] »¹Ã»ÓĞÈÎºÎÊı¾İ£¬ÎŞĞè±¸·İ
   pause
   exit /b 0
 )
 
-powershell -NoProfile -Command "$ts = Get-Date -Format 'yyyyMMdd-HHmm'; Compress-Archive -Path '%PROJECT_DIR%\backend\data\*' -DestinationPath '%BACKUP_DIR%\data-$ts.zip' -Force; Write-Host ('å¤‡ä»½å®Œæˆï¼š' + '%BACKUP_DIR%\data-' + $ts + '.zip')"
+powershell -NoProfile -Command "$ts = Get-Date -Format 'yyyyMMdd-HHmm'; Compress-Archive -Path '%PROJECT_DIR%\backend\data\*' -DestinationPath '%BACKUP_DIR%\data-$ts.zip' -Force; Write-Host ('±¸·İÍê³É£º' + '%BACKUP_DIR%\data-' + $ts + '.zip')"
 
 echo.
 pause

@@ -1,25 +1,24 @@
 @echo off
-chcp 65001 >nul
-title LangchainRAG ç³»ç»Ÿï¼ˆå…³æŽ‰æœ¬çª—å£ = åœæ­¢ç³»ç»Ÿï¼‰
+title LangchainRAG ÏµÍ³£¨¹Øµô±¾´°¿Ú = Í£Ö¹ÏµÍ³£©
 cd /d "%~dp0"
-call "çŽ¯å¢ƒé…ç½®.bat"
+call "%~dp0»·¾³ÅäÖÃ.bat"
 
 if not exist "%VENV_PY%" (
-  echo [é”™è¯¯] è¿˜æ²¡å®‰è£…çŽ¯å¢ƒï¼Œè¯·å…ˆåŒå‡» 1-é¦–æ¬¡å®‰è£….bat
+  echo [´íÎó] »¹Ã»°²×°»·¾³£¬ÇëÏÈË«»÷ 1-Ê×´Î°²×°.bat
   pause
   exit /b 1
 )
 if not exist "%PROJECT_DIR%\frontend\dist\index.html" (
-  echo [æç¤º] å‰ç«¯ç•Œé¢è¿˜æ²¡æž„å»ºï¼Œè¯·å…ˆåŒå‡» 3-æž„å»ºå‰ç«¯.bat
+  echo [ÌáÊ¾] Ç°¶Ë½çÃæ»¹Ã»¹¹½¨£¬ÇëÏÈË«»÷ 3-¹¹½¨Ç°¶Ë.bat
   pause
   exit /b 1
 )
 
 netstat -ano | findstr ":%SERVICE_PORT%" | findstr "LISTENING" >nul 2>&1
 if not errorlevel 1 (
-  echo [æç¤º] ç«¯å£ %SERVICE_PORT% å·²è¢«å ç”¨ï¼š
-  echo        å¦‚æžœç³»ç»Ÿæœ¬æ¥å°±åœ¨è¿è¡Œï¼Œç›´æŽ¥æ‰“å¼€ http://127.0.0.1:%SERVICE_PORT% å³å¯
-  echo        å¦‚æžœä¸æ˜¯ï¼Œè¯·å…³é—­å ç”¨è¯¥ç«¯å£çš„ç¨‹åºåŽé‡è¯•
+  echo [ÌáÊ¾] ¶Ë¿Ú %SERVICE_PORT% ÒÑ±»Õ¼ÓÃ£º
+  echo        Èç¹ûÏµÍ³±¾À´¾ÍÔÚÔËÐÐ£¬Ö±½Ó´ò¿ª http://127.0.0.1:%SERVICE_PORT% ¼´¿É
+  echo        Èç¹û²»ÊÇ£¬Çë¹Ø±ÕÕ¼ÓÃ¸Ã¶Ë¿ÚµÄ³ÌÐòºóÖØÊÔ
   pause
   exit /b 1
 )
@@ -28,15 +27,15 @@ cd /d "%PROJECT_DIR%\backend"
 
 echo.
 echo ============================================
-echo   æ­£åœ¨å¯åŠ¨çŸ¥è¯†åº“é—®ç­”ç³»ç»Ÿ...
-echo   æµè§ˆå™¨ç¨åŽè‡ªåŠ¨æ‰“å¼€ http://127.0.0.1:%SERVICE_PORT%
+echo   ÕýÔÚÆô¶¯ÖªÊ¶¿âÎÊ´ðÏµÍ³...
+echo   ä¯ÀÀÆ÷ÉÔºó×Ô¶¯´ò¿ª http://127.0.0.1:%SERVICE_PORT%
 echo.
-echo   â˜… ä¿æŒæœ¬çª—å£å¼€ç€ = ç³»ç»Ÿè¿è¡Œä¸­
-echo   â˜… å…³æŽ‰æœ¬çª—å£   = åœæ­¢ç³»ç»Ÿ
+echo   ¡ï ±£³Ö±¾´°¿Ú¿ª×Å = ÏµÍ³ÔËÐÐÖÐ
+echo   ¡ï ¹Øµô±¾´°¿Ú   = Í£Ö¹ÏµÍ³
 echo ============================================
 echo.
 
-rem ç­‰æœåŠ¡èµ·æ¥åŽå†æ‰“å¼€æµè§ˆå™¨ï¼ˆç­‰ 5 ç§’ï¼‰
+rem µÈ·þÎñÆðÀ´ºóÔÙ´ò¿ªä¯ÀÀÆ÷£¨µÈ 5 Ãë£©
 start "" cmd /c "timeout /t 5 >nul & start http://127.0.0.1:%SERVICE_PORT%"
 
 "%VENV_PY%" -m uvicorn app.main:app --host 127.0.0.1 --port %SERVICE_PORT%

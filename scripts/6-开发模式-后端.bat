@@ -1,16 +1,15 @@
 @echo off
-chcp 65001 >nul
-title å¼€å‘æ¨¡å¼ - åŽç«¯ï¼ˆæ”¹ä»£ç è‡ªåŠ¨ç”Ÿæ•ˆï¼‰
+title ¿ª·¢Ä£Ê½ - ºó¶Ë£¨¸Ä´úÂë×Ô¶¯ÉúÐ§£©
 cd /d "%~dp0"
-call "çŽ¯å¢ƒé…ç½®.bat"
+call "%~dp0»·¾³ÅäÖÃ.bat"
 
 if not exist "%VENV_PY%" (
-  echo [é”™è¯¯] è¿˜æ²¡å®‰è£…çŽ¯å¢ƒï¼Œè¯·å…ˆåŒå‡» 1-é¦–æ¬¡å®‰è£….bat
+  echo [´íÎó] »¹Ã»°²×°»·¾³£¬ÇëÏÈË«»÷ 1-Ê×´Î°²×°.bat
   pause
   exit /b 1
 )
 
 cd /d "%PROJECT_DIR%\backend"
-echo åŽç«¯å¼€å‘æœåŠ¡ï¼ˆä¿®æ”¹ä»£ç åŽè‡ªåŠ¨é‡å¯ï¼‰ï¼šhttp://127.0.0.1:%SERVICE_PORT%
+echo ºó¶Ë¿ª·¢·þÎñ£¨ÐÞ¸Ä´úÂëºó×Ô¶¯ÖØÆô£©£ºhttp://127.0.0.1:%SERVICE_PORT%
 "%VENV_PY%" -m uvicorn app.main:app --host 127.0.0.1 --port %SERVICE_PORT% --reload
 pause

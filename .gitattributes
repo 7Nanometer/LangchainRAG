@@ -1,0 +1,3 @@
+# .bat 脚本是 GBK 编码 + CRLF 行尾的 Windows 交付格式：
+# 让 git 原样存储、不做行尾转换（否则会损坏脚本）
+*.bat -text

@@ -1,14 +1,13 @@
 @echo off
-chcp 65001 >nul
-title å¼€å‘æ¨¡å¼ - å‰ç«¯ï¼ˆæ”¹ç•Œé¢å³æ—¶é¢„è§ˆï¼‰
+title ¿ª·¢Ä£Ê½ - Ç°¶Ë£¨¸Ä½çÃæ¼´Ê±Ô¤ÀÀ£©
 cd /d "%~dp0"
-call "ç¯å¢ƒé…ç½®.bat"
+call "%~dp0»·¾³ÅäÖÃ.bat"
 
 cd /d "%PROJECT_DIR%\frontend"
 if not exist node_modules (
-  echo [æç¤º] éœ€è¦å…ˆå®‰è£…å‰ç«¯ä¾èµ–...
+  echo [ÌáÊ¾] ĞèÒªÏÈ°²×°Ç°¶ËÒÀÀµ...
   call npm install --registry=https://registry.npmmirror.com --no-fund --no-audit
 )
-echo å‰ç«¯å¼€å‘æœåŠ¡ï¼šhttp://127.0.0.1:5173 ï¼ˆéœ€åŒæ—¶è¿è¡Œ 6-å¼€å‘æ¨¡å¼-åç«¯.batï¼‰
+echo Ç°¶Ë¿ª·¢·şÎñ£ºhttp://127.0.0.1:5173 £¨ĞèÍ¬Ê±ÔËĞĞ 6-¿ª·¢Ä£Ê½-ºó¶Ë.bat£©
 call npm run dev
 pause

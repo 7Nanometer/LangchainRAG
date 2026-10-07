@@ -1,32 +1,31 @@
 @echo off
-chcp 65001 >nul
-title 构建前端界面
+title ����ǰ�˽���
 cd /d "%~dp0"
-call "环境配置.bat"
+call "%~dp0��������.bat"
 
 echo.
 echo ============================================
-echo   把网页界面打包成成品（约 1~3 分钟）
+echo   ����ҳ�������ɳ�Ʒ��Լ 1~3 ���ӣ�
 echo ============================================
 echo.
 
 cd /d "%PROJECT_DIR%\frontend"
 
 if not exist node_modules (
-  echo [提示] 首次构建前需要先安装前端依赖...
+  echo [��ʾ] �״ι���ǰ��Ҫ�Ȱ�װǰ������...
   call npm install --registry=https://registry.npmmirror.com --no-fund --no-audit
 )
 
 call npm run build
 if errorlevel 1 (
   echo.
-  echo [错误] 前端构建失败，请把窗口里的报错信息截图反馈
+  echo [����] ǰ�˹���ʧ�ܣ���Ѵ�����ı�����Ϣ��ͼ����
   pause
   exit /b 1
 )
 
 echo.
 echo ============================================
-echo   构建完成！现在可以双击 4-启动系统.bat 了
+echo   ������ɣ����ڿ���˫�� 4-����ϵͳ.bat ��
 echo ============================================
 pause

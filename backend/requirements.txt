@@ -1,0 +1,48 @@
+# ================= LangchainRAG 后端依赖清单 =================
+# 说明：PyTorch（CUDA 版）不在此文件，由「1-首次安装.bat」用官方源单独安装
+
+# ---- 基础 Web 框架 ----
+fastapi>=0.116
+uvicorn[standard]>=0.35
+python-multipart>=0.0.9          # 文件上传支持
+pydantic>=2.11
+pydantic-settings>=2.8           # 读取 .env 配置文件
+
+# ---- 认证与安全 ----
+PyJWT>=2.10                      # 生成/校验登录通行证（JWT）
+bcrypt>=4.2                      # 密码加密（业界标准）
+
+# ---- 数据库 ----
+SQLAlchemy>=2.0                  # 用 Python 操作数据库的框架（ORM）
+
+# ---- LangChain 全家桶（RAG 核心）----
+langchain>=1.4,<2
+langchain-core>=1.6
+langchain-text-splitters>=1.1    # 文档分块
+langchain-deepseek>=1.1          # 连接 DeepSeek 大模型
+langchain-chroma>=1.1            # 连接 Chroma 向量库
+langchain-huggingface>=1.2       # 连接本地 BGE 向量模型
+langchain-classic>=1.0           # 精排用的检索包装类
+langchain-community>=0.4         # 精排交叉编码器包装（已隔离封装，可替换）
+
+# ---- 向量数据库 ----
+chromadb>=1.5,<2
+
+# ---- 本地 AI 模型 ----
+sentence-transformers>=4         # 加载 BGE 向量模型/精排模型
+transformers
+modelscope                       # 从国内源下载模型
+
+# ---- 检索 ----
+rank_bm25>=0.2.2                 # 关键词检索算法
+jieba>=0.42.1                    # 中文分词
+
+# ---- 文档解析 ----
+pypdf>=5                         # PDF
+python-docx>=1.1                 # Word
+openpyxl>=3.1                    # Excel
+pandas>=2.2                      # CSV
+
+# ---- 测试 ----
+pytest>=8
+httpx>=0.28

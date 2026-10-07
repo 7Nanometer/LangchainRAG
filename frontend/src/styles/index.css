@@ -1,0 +1,56 @@
+/**
+ * 全局样式 + 浅色/深色两套主题颜色
+ * 页面里统一用 var(--xxx) 引用颜色，切主题时整体自动变色
+ */
+:root {
+  --app-bg: #f5f7fa;
+  --panel-bg: #ffffff;
+  --text-main: #1f2329;
+  --text-second: #8a919f;
+  --border-color: #e4e7ed;
+  --brand: #2563eb;
+  --sidebar-bg: #ffffff;
+}
+
+html.dark {
+  --app-bg: #101319;
+  --panel-bg: #1a1f28;
+  --text-main: #e6e8eb;
+  --text-second: #9aa3b0;
+  --border-color: #2a3140;
+  --brand: #3b82f6;
+  --sidebar-bg: #161a22;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
+    'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--app-bg);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.35);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

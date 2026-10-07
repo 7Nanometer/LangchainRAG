@@ -21,6 +21,7 @@ SSE 事件协议（前端按事件名处理）：
 import asyncio
 import json
 import logging
+import re
 import time
 
 from sqlalchemy import select
@@ -231,14 +232,34 @@ def _need_rewrite(question: str) -> bool:
 
 
 async def _rewrite_question(question: str, history: list[tuple[str, str]]) -> str | None:
-    """用大模型把问题改写成可独立检索的完整问句；失败返回 None（用原问题）"""
+    """
+    用大模型把问题改写成可独立检索的完整问句；失败或无需改写时返回 None（用原问题）。
+
+    注意：deepseek-flash 是"先思考再回答"的模型，max_tokens 必须给足，
+    否则思考过程会把额度耗尽、正文为空（曾实测踩坑）。
+    """
     try:
-        model = get_chat_model(temperature=0.0, max_tokens=100)
+        model = get_chat_model(temperature=0.0, max_tokens=800)
         messages = build_rewrite_messages(question, history)
         response = await model.ainvoke(messages)
-        text = str(response.content or "").strip().strip("“”\"'").strip()
-        if 0 < len(text) <= 100 and text != question:
-            return text
+
+        text = str(response.content or "").strip()
+        # 清洗：去掉引号包裹、可能的"改写后："前缀，只保留第一行
+        for quote in ('"', "'", "“", "”", "「", "」"):
+            text = text.strip(quote)
+        text = re.sub(r"^(改写后(的)?(检索)?(问题|问句)[：:]\s*)", "", text)
+        text = text.split("\n")[0].strip()
+
+        if not text:
+            logger.warning("指代改写返回为空（可能 max_tokens 不足），改用原问题检索")
+            return None
+        if text == question:
+            logger.info("指代改写：模型判定无需改写，按原问题检索")
+            return None
+        if len(text) > 100:
+            logger.warning("指代改写结果过长，改用原问题检索：%s", text[:60])
+            return None
+        return text
     except Exception:  # noqa: BLE001
         logger.exception("指代改写失败，改用原问题检索")
     return None

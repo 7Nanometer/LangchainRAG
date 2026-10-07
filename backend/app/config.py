@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+r"""
 配置中心 —— 全项目的"总控台"
 
 所有可调的设置都集中在这里：
@@ -26,7 +26,7 @@ FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"   # 前端打包后的成�
 
 
 def get_or_create_secret_key() -> str:
-    """
+    r"""
     获取 JWT 加密密钥（相当于系统内部盖章用的私章）。
 
     首次启动时自动生成一串随机字符并保存到 data\.jwt_secret，

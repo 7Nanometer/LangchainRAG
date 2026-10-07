@@ -65,6 +65,8 @@ A：重新双击 `2-下载模型.bat`，会自动接着下载（断点续传）�
 - 技术栈：LangChain 1.4 + FastAPI + SQLite + Chroma + Vue 3 + Element Plus
 - 改后端代码：`6-开发模式-后端.bat`（自动热更新）
 - 改前端代码：`6-开发模式-前端.bat` + 后端（浏览器访问 5173 端口）
+- 改启动脚本：改 `tools\bat_src\` 里的源文件，然后运行 `python tools\build_scripts.py`
+  重新生成 `scripts\` 下的 GBK 版（中文 Windows 的 .bat 需要 GBK 编码 + CRLF 行尾）
 - 文档：`docs\产品方案.md`（定稿方案）、`docs\进度.md`（开发进度）
 
 ## 五、目录结构一览

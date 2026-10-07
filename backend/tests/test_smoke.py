@@ -2,7 +2,8 @@
 """
 冒烟测试：不依赖 AI 模型和网络，快速验证核心链路没坏
 
-跑法（在 backend 目录）：venv 的 python -m pytest tests/test_smoke.py -v
+跑法（在 backend 目录）：
+    venv 的 python -m pytest tests/test_smoke.py -v
 """
 import uuid
 
@@ -11,17 +12,26 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-client = TestClient(app)
+
+@pytest.fixture(scope="module")
+def client():
+    """
+    整个测试模块共用一个测试客户端。
+    注意：必须用 with 语句进入上下文，服务的"启动事件"才会执行
+    （建数据库表、自动创建管理员）——普通构造 TestClient(app) 不会触发。
+    """
+    with TestClient(app) as c:
+        yield c
 
 
-def test_health():
+def test_health(client):
     """服务健康检查"""
     resp = client.get("/api/health")
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
 
 
-def test_admin_account_created():
+def test_admin_account_created(client):
     """管理员账号已自动创建，且角色正确（账号密码从 .env 读取，不硬编码）"""
     from app.config import settings
 
@@ -35,7 +45,7 @@ def test_admin_account_created():
     assert resp.json()["user"]["role"] == "admin"
 
 
-def test_register_login_change_password():
+def test_register_login_change_password(client):
     """完整走一遍：注册 → 登录 → 查我 → 改密 → 旧密码失效 → 新密码可登录"""
     name = "t" + uuid.uuid4().hex[:8]
 
@@ -91,13 +101,13 @@ def test_register_login_change_password():
     assert resp.status_code == 200
 
 
-def test_no_token_rejected():
+def test_no_token_rejected(client):
     """没带通行证访问受保护接口 → 401"""
     resp = client.get("/api/auth/me")
     assert resp.status_code == 401
 
 
-def test_wrong_password_rejected():
+def test_wrong_password_rejected(client):
     """密码错误 → 401，且提示不泄露"用户是否存在" """
     resp = client.post("/api/auth/login", json={"username": "7Nanometer", "password": "wrong"})
     assert resp.status_code == 401

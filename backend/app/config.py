@@ -9,6 +9,7 @@ r"""
 
 想改任何设置：优先改 .env 文件；.env 里没有的项用本文件的默认值。
 """
+import os
 import secrets
 from pathlib import Path
 
@@ -17,7 +18,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # ---------- 路径定义 ----------
 # BASE_DIR 指向 backend 文件夹（本文件是 backend/app/config.py，往上两级）
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"            # 运行数据（数据库、向量库、上传的文件、日志）
+# 运行数据目录（数据库、向量库、上传的文件、日志都在这里面）
+# 可用环境变量 RAG_DATA_DIR 覆盖 —— 用于测试隔离等场景
+DATA_DIR = Path(os.environ.get("RAG_DATA_DIR") or (BASE_DIR / "data"))
 UPLOAD_DIR = DATA_DIR / "uploads"       # 管理员上传的原始文档
 CHROMA_DIR = DATA_DIR / "chroma"        # Chroma 向量库目录
 LOG_DIR = DATA_DIR / "logs"             # 日志文件

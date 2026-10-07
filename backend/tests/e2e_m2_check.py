@@ -8,6 +8,7 @@ M2 端到端检查脚本（对着真实运行中的系统做全流程验证）
 跑法（在 backend 目录）：venv 的 python tests/e2e_m2_check.py
 注意：需要系统正在运行（先双击 4-启动系统.bat，等浏览器打开后再跑本脚本）
 """
+import os
 import sys
 import time
 from pathlib import Path
@@ -19,7 +20,8 @@ import httpx  # noqa: E402
 
 from app.config import settings  # noqa: E402
 
-BASE = "http://127.0.0.1:8000"
+# 目标服务地址（可用环境变量 RAG_BASE_URL 覆盖，默认本机 8000 端口）
+BASE = os.environ.get("RAG_BASE_URL") or "http://127.0.0.1:8000"
 KB_NAME = "电商商品知识库"
 
 

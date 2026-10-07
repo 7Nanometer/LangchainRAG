@@ -84,6 +84,10 @@ class Settings(BaseSettings):
     vector_top_k: int = 20          # 向量检索粗召回条数
     bm25_top_k: int = 20            # 关键词检索粗召回条数
     rerank_top_n: int = 5           # 精排后最终采用条数
+    # 精排相关度阈值（低于它视为不相关→兜底）。
+    # 依据实测：bge-reranker 的分数以 0.5 为"零点"——无关片段≈0.500，
+    # 相关片段 0.55~0.79。取 0.52 为分界线（留出安全余量）
+    rerank_threshold: float = 0.52
     chunk_size: int = 500           # 文档分块大小（字符）
     chunk_overlap: int = 50         # 分块重叠（防止一句话被拦腰切断）
 

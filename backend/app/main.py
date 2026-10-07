@@ -24,8 +24,10 @@ from .core.exceptions import register_exception_handlers
 from .core.logging import setup_logging
 from .database import Base, SessionLocal, engine
 from .services.auth_service import ensure_admin
+from .services.bm25_index import warm_up_async as bm25_warm_up
 from .services.embeddings import warm_up_async
 from .services.queue_worker import recover_pending_tasks, start_worker
+from .services.reranker import warm_up_async as reranker_warm_up
 
 # 让 models 里的表定义全部注册进 Base（create_all 才能建全表）
 from . import models  # noqa: F401
@@ -44,8 +46,10 @@ async def lifespan(_app: FastAPI):
     # 启动入库流水线：先恢复上次未完成的任务（重启不丢任务），再开启后台处理队列
     start_worker()
     recover_pending_tasks()
-    # 后台预热向量模型（不阻塞启动；预热完成前，第一次上传处理会稍慢）
+    # 后台预热（不阻塞启动）：向量模型 + 精排模型 + 关键词索引
     warm_up_async()
+    reranker_warm_up()
+    bm25_warm_up()
     logger.info("=" * 56)
     logger.info(" LangchainRAG 知识库问答系统已启动")
     logger.info(" 浏览器访问：http://%s:%s", settings.host, settings.port)

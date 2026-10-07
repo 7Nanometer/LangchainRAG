@@ -70,7 +70,7 @@ def main() -> int:
         print(f"     答案 {len(answer)} 字 / {done['latency_ms']}ms / 引用 {len(cites)} 段")
         assert answer and len(cites) > 0
 
-        # 2. 多轮追问（同一会话）
+        # 2. 多轮追问（同一会话，触发指代改写链路）
         with c.stream(
             "POST",
             "/api/chat/stream",
@@ -79,7 +79,19 @@ def main() -> int:
         ) as resp:
             events2 = parse_sse(resp.iter_lines())
         assert any(e["event"] == "done" for e in events2)
-        print("[3] 多轮追问（同一会话）✓")
+        print("[3] 多轮追问（同一会话，含指代改写）✓")
+
+        # 2.5 语义缓存：相同问题再问一次 → 应命中缓存秒回
+        with c.stream(
+            "POST", "/api/chat/stream", json={"question": "W1 耳机续航多久？"}, headers=auth
+        ) as resp:
+            events_c = parse_sse(resp.iter_lines())
+        meta_c = next(e["data"] for e in events_c if e["event"] == "meta")
+        done_c = next(e["data"] for e in events_c if e["event"] == "done")
+        assert meta_c.get("from_cache") is True and done_c.get("from_cache") is True, (
+            f"相同问题应命中缓存，实际 meta={meta_c}"
+        )
+        print(f"[3.5] 相同问题命中缓存秒回（{done_c['latency_ms']}ms）✓")
 
         # 3. 会话列表（标题自动命名 + 消息数）
         convs = c.get("/api/conversations", headers=auth).json()

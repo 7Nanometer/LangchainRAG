@@ -30,11 +30,16 @@ class FakeStreamingModel:
         "您好！根据资料：W1 耳机的续航时间为 30 小时（关闭降噪），"
         "充电 10 分钟即可听歌 2 小时 [1]。如果您需要了解其他参数，欢迎继续提问～"
     )
+    _REWRITE_ANSWER = "W1 耳机的防水等级是什么？"  # 供指代改写链路测试用
 
     async def astream(self, _messages):  # noqa: ANN001 —— 与真实模型保持同样的接口
         for ch in self._ANSWER:
             yield AIMessageChunk(content=ch)
             await asyncio.sleep(0.01)
+
+    async def ainvoke(self, _messages):  # noqa: ANN001
+        """非流式调用（指代改写等场景）"""
+        return AIMessageChunk(content=self._REWRITE_ANSWER)
 
 
 def get_chat_model(

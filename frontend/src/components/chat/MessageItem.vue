@@ -47,6 +47,7 @@ function onDislike() {
 
       <!-- AI 消息：Markdown 渲染 -->
       <div v-else class="bubble ai-bubble">
+        <div v-if="message.from_cache" class="cache-badge">⚡ 来自缓存（秒回）</div>
         <div v-if="!message.content" class="thinking">
           <span class="dot" /><span class="dot" /><span class="dot" /> 正在查找资料…
         </div>
@@ -150,6 +151,15 @@ function onDislike() {
   padding: 10px;
   border-radius: 8px;
   overflow-x: auto;
+}
+.cache-badge {
+  display: inline-block;
+  font-size: 11.5px;
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
 }
 .md-body :deep(.cite-ref) {
   display: inline-block;

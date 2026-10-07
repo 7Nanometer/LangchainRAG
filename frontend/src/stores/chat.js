@@ -21,6 +21,7 @@ export const useChatStore = defineStore('chat', {
     streamText: '',         // 已生成的文本（逐字追加）
     streamCitations: [],    // 本次引用的资料片段
     streamFallback: false,  // 本次是否为兜底回答
+    streamFromCache: false, // 本次是否命中缓存（秒回）
     abortCtrl: null,        // 用于停止生成
   }),
 
@@ -95,6 +96,7 @@ export const useChatStore = defineStore('chat', {
       this.streamText = ''
       this.streamCitations = []
       this.streamFallback = false
+      this.streamFromCache = false
       this.abortCtrl = new AbortController()
 
       try {
@@ -105,6 +107,7 @@ export const useChatStore = defineStore('chat', {
               // 新会话：服务器已建好会话，记住 id（视图会同步地址栏）
               if (this.currentId == null) this.currentId = meta.conversation_id
               this.streamFallback = meta.is_fallback
+              this.streamFromCache = !!meta.from_cache
             },
             onCitations: (citations) => {
               this.streamCitations = citations
@@ -121,6 +124,7 @@ export const useChatStore = defineStore('chat', {
                 citations: this.streamCitations,
                 feedback: null,
                 is_fallback: this.streamFallback,
+                from_cache: this.streamFromCache,
                 latency_ms: done.latency_ms,
                 created_at: new Date().toISOString(),
               })
@@ -180,6 +184,7 @@ export const useChatStore = defineStore('chat', {
       this.streamText = ''
       this.streamCitations = []
       this.streamFallback = false
+      this.streamFromCache = false
       this.abortCtrl = null
     },
   },

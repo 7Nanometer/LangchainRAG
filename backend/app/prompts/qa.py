@@ -26,6 +26,7 @@ def build_qa_messages(
     question: str,
     hits: list[dict],
     history: list[tuple[str, str]] | None = None,
+    fallback_extra: str | None = None,
 ) -> list:
     """
     组装发给大模型的消息列表。
@@ -33,6 +34,7 @@ def build_qa_messages(
     question: 用户本次的提问
     hits:     检索到的资料片段 [{index, filename, content}, ...]
     history:  最近几轮对话 [(role, content), ...]（role: user / assistant）
+    fallback_extra: 兜底时附加的信息（如"知识库当前收录了哪些资料"）
     """
     if hits:
         context = "\n\n".join(
@@ -41,7 +43,10 @@ def build_qa_messages(
         user_content = f"【参考资料】\n{context}\n\n【用户问题】\n{question}"
     else:
         # 没有检索到资料：直接把"没资料"作为事实交给模型组织语言
-        user_content = f"【提示】{FALLBACK_HINT}\n\n【用户问题】\n{question}"
+        hint = FALLBACK_HINT
+        if fallback_extra:
+            hint += f"\n4. 可以顺带告诉用户：知识库当前收录的资料包括：{fallback_extra}"
+        user_content = f"【提示】{hint}\n\n【用户问题】\n{question}"
 
     messages: list = [SystemMessage(content=SYSTEM_PROMPT)]
     for role, content in history or []:

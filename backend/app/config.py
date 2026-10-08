@@ -92,6 +92,7 @@ class Settings(BaseSettings):
     chunk_overlap: int = 50         # 分块重叠（防止一句话被拦腰切断）
 
     # ---- 问答缓存 ----
+    qa_cache_enabled: bool = True              # 是否启用语义缓存（压测等场景可关闭）
     cache_similarity_threshold: float = 0.92   # 相似度高于此值直接复用旧答案
     cache_max_entries: int = 5000              # 缓存条数上限
 

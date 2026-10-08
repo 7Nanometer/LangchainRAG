@@ -4,14 +4,20 @@
 
 请求 POST /api/chat/stream  {question, conversation_id?}
 返回事件流：meta → citations → delta（多次）→ done（或 error）
+
+注意：本端点是 async 的（要返回流式响应），因此内部的数据库操作
+必须放进线程池执行（asyncio.to_thread）——否则会阻塞事件循环，
+高并发下拖垮整个服务（压测实测教训）。
 """
+import asyncio
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..core.exceptions import AppException
 from ..core.limiter import check_rate_limit
-from ..database import get_db
+from ..database import SessionLocal, get_db
 from ..deps import get_current_user
 from ..models import User
 from ..schemas.chat import ChatRequest
@@ -20,6 +26,15 @@ from ..services.llm import get_chat_model
 from ..services.rag_service import stream_chat
 
 router = APIRouter(prefix="/chat", tags=["问答"])
+
+
+def _verify_conversation_owner(user_id: int, conversation_id: int) -> None:
+    """会话归属校验（独立短连接，供线程池调用）"""
+    db = SessionLocal()
+    try:
+        get_owned_conversation(db, user_id, conversation_id)
+    finally:
+        db.close()
 
 
 @router.post("/stream", summary="流式问答（打字机效果）")
@@ -42,9 +57,9 @@ async def chat_stream(
     # 每用户每分钟提问次数限制（防 API 费用失控）
     check_rate_limit(user.id)
 
-    # 会话归属校验（防越权）
+    # 会话归属校验（防越权；放线程池执行，避免阻塞事件循环）
     if payload.conversation_id is not None:
-        get_owned_conversation(db, user.id, payload.conversation_id)
+        await asyncio.to_thread(_verify_conversation_owner, user.id, payload.conversation_id)
 
     # 提前检查模型配置（没配 API Key 时在这里就报中文错误，而不是流中断）
     get_chat_model()

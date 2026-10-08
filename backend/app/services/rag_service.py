@@ -2,30 +2,32 @@
 """
 问答编排 —— 一次提问背后的完整流程（本项目的核心）
 
-M4 升级版流程：
+流程：
   1. 找到/创建会话，把用户的问题存进数据库
   2. 多轮场景先做「指代改写」（"它防水吗" → "W1 耳机防水吗"）
   3. 查「语义缓存」——问过/相似的问题直接秒回
   4. 检索资料（混合检索：向量 + 关键词 → 融合 → 精排；见 retrieval.py）
   5. 组装中文提示词，流式调用 DeepSeek，逐字推送（SSE 事件流）
   6. 完整答案 + 引用快照落库；写缓存供下次秒回
-     （中途被停止也会保存已生成的部分）
 
-SSE 事件协议（前端按事件名处理）：
-  meta      最先发：会话 id、消息 id、是否兜底、是否缓存命中
-  citations 生成前发：引用的资料片段列表
-  delta     逐字发：本段新增文字
-  done      结束：消息 id、耗时、是否来自缓存
-  error     出错：中文错误信息
+【并发设计（压测调优后）】
+  - 所有数据库操作都封装成"独立短连接函数"，通过线程池执行（asyncio.to_thread），
+    绝不占用事件循环——否则一次数据库等锁会卡住所有人的请求（压测实测复现过）
+  - 写操作尽量合并（一次提交多条），减少 SQLite 写锁竞争
+  - 中断保存用独立线程执行（不阻塞、不 await）
+
+SSE 事件协议：meta → citations → delta（多次）→ done / error
 """
 import asyncio
 import json
 import logging
 import re
+import threading
 import time
 
 from sqlalchemy import select
 
+from ..config import settings
 from ..core.exceptions import AppException
 from ..database import SessionLocal
 from ..models import Document, Message
@@ -48,25 +50,21 @@ _PRONOUNS = ("它", "他", "她", "这个", "那个", "这款", "那款", "该",
 
 async def stream_chat(user_id: int, question: str, conversation_id: int | None):
     """问答流生成器：产出已格式化好的 SSE 事件字符串"""
-    db = SessionLocal()
     started = time.perf_counter()
     answer_parts: list[str] = []
     citations: list[dict] = []
-    assistant_msg: Message | None = None
+    assistant_id: int | None = None
+    user_msg_id: int | None = None
+    rewritten: str | None = None
     finished = False
-    cache_saved = False
 
     try:
         yield sse_comment("processing")
 
-        # ---- 1. 会话与用户消息 ----
-        conv = get_or_create_for_chat(db, user_id, conversation_id, question)
-        user_msg = Message(conversation_id=conv.id, role="user", content=question)
-        db.add(user_msg)
-        db.commit()
-        db.refresh(user_msg)
-
-        history = _recent_history(db, conv.id, exclude_id=user_msg.id)
+        # ---- 1. 会话 + 用户消息 + 历史（一次线程池往返，不阻塞事件循环）----
+        conv_id, user_msg_id, history = await asyncio.to_thread(
+            _db_prepare_chat, user_id, conversation_id, question
+        )
 
         # ---- 2. 指代改写（仅多轮且问题疑似不完整时）----
         search_question = question
@@ -74,8 +72,6 @@ async def stream_chat(user_id: int, question: str, conversation_id: int | None):
             rewritten = await _rewrite_question(question, history)
             if rewritten:
                 search_question = rewritten
-                user_msg.rewritten_question = rewritten
-                db.commit()
                 logger.info("指代改写：%s → %s", question[:30], rewritten[:40])
 
         # ---- 3. 问题向量（缓存查询 + 检索共用，只算一次）----
@@ -84,64 +80,58 @@ async def stream_chat(user_id: int, question: str, conversation_id: int | None):
         )
         version = await asyncio.to_thread(_content_version)
 
-        # ---- 4. 语义缓存 ----
-        cached = await asyncio.to_thread(find_cached, search_question, question_vector, version)
+        # ---- 4. 语义缓存（可按配置关闭）----
+        cached = None
+        if settings.qa_cache_enabled:
+            cached = await asyncio.to_thread(
+                find_cached, search_question, question_vector, version
+            )
         if cached:
             latency_ms = int((time.perf_counter() - started) * 1000)
-            assistant_msg = Message(
-                conversation_id=conv.id,
-                role="assistant",
-                content=cached["answer"],
-                citations_json=json.dumps(cached["citations"], ensure_ascii=False),
-                from_cache=1,
-                latency_ms=latency_ms,
+            assistant_id = await asyncio.to_thread(
+                _db_create_cached_answer,
+                conv_id,
+                cached["answer"],
+                json.dumps(cached["citations"], ensure_ascii=False),
+                latency_ms,
             )
-            db.add(assistant_msg)
-            db.commit()
-            db.refresh(assistant_msg)
             finished = True
-
             yield sse_event(
                 "meta",
                 {
-                    "conversation_id": conv.id,
-                    "user_message_id": user_msg.id,
-                    "assistant_message_id": assistant_msg.id,
+                    "conversation_id": conv_id,
+                    "user_message_id": user_msg_id,
+                    "assistant_message_id": assistant_id,
                     "is_fallback": False,
                     "from_cache": True,
                 },
             )
             yield sse_event("citations", cached["citations"])
-            # 缓存命中：整段一次性推送（"秒回"体验）
             yield sse_event("delta", {"text": cached["answer"]})
             yield sse_event(
                 "done",
-                {"message_id": assistant_msg.id, "latency_ms": latency_ms, "from_cache": True},
+                {"message_id": assistant_id, "latency_ms": latency_ms, "from_cache": True},
             )
             return
 
         # ---- 5. 混合检索（向量 + 关键词 → 融合 → 精排）----
-        hits, is_fallback = await asyncio.to_thread(retrieve, question=search_question, top_k=None, query_vector=question_vector)
+        hits, is_fallback = await asyncio.to_thread(
+            retrieve, question=search_question, top_k=None, query_vector=question_vector
+        )
 
-        # 兜底时：告诉模型"知识库收录了什么"，让回答更有帮助
         fallback_extra = None
         if is_fallback:
             fallback_extra = await asyncio.to_thread(_kb_document_names)
 
-        # ---- 6. 助手消息占位 ----
-        assistant_msg = Message(
-            conversation_id=conv.id, role="assistant", content="", citations_json="[]"
-        )
-        db.add(assistant_msg)
-        db.commit()
-        db.refresh(assistant_msg)
+        # ---- 6. 助手消息占位（先落库，中断也有记录）----
+        assistant_id = await asyncio.to_thread(_db_create_placeholder, conv_id)
 
         citations = [
             {
                 "index": h["index"],
                 "filename": h["filename"],
                 "content": h["content"],
-                "score": round(h["rerank_score"], 4),  # 精排相关度（0~1）
+                "score": round(h["rerank_score"], 4),
             }
             for h in hits
         ]
@@ -149,9 +139,9 @@ async def stream_chat(user_id: int, question: str, conversation_id: int | None):
         yield sse_event(
             "meta",
             {
-                "conversation_id": conv.id,
-                "user_message_id": user_msg.id,
-                "assistant_message_id": assistant_msg.id,
+                "conversation_id": conv_id,
+                "user_message_id": user_msg_id,
+                "assistant_message_id": assistant_id,
                 "is_fallback": is_fallback,
                 "from_cache": False,
             },
@@ -168,26 +158,31 @@ async def stream_chat(user_id: int, question: str, conversation_id: int | None):
             answer_parts.append(text)
             yield sse_event("delta", {"text": text})
 
-        # ---- 8. 完成落库 ----
+        # ---- 8. 完成落库（一次提交：回答 + 改写记录）----
         answer_text = "".join(answer_parts)
         latency_ms = int((time.perf_counter() - started) * 1000)
-        assistant_msg.content = answer_text
-        assistant_msg.citations_json = json.dumps(citations, ensure_ascii=False)
-        assistant_msg.is_fallback = 1 if is_fallback else 0
-        assistant_msg.latency_ms = latency_ms
-        db.commit()
+        citations_json = json.dumps(citations, ensure_ascii=False)
+        await asyncio.to_thread(
+            _db_finish_answer,
+            assistant_id,
+            answer_text,
+            citations_json,
+            is_fallback,
+            latency_ms,
+            user_msg_id,
+            rewritten,
+        )
 
-        # ---- 9. 写语义缓存（兜底回答不缓存）----
-        if not is_fallback and answer_text:
+        # ---- 9. 写语义缓存（兜底回答不缓存；缓存可关闭）----
+        if settings.qa_cache_enabled and not is_fallback and answer_text:
             await asyncio.to_thread(
                 save_cache,
                 search_question,
                 question_vector,
                 answer_text,
-                assistant_msg.citations_json,
+                citations_json,
                 version,
             )
-            cache_saved = True
 
         finished = True
         logger.info(
@@ -199,7 +194,7 @@ async def stream_chat(user_id: int, question: str, conversation_id: int | None):
         )
         yield sse_event(
             "done",
-            {"message_id": assistant_msg.id, "latency_ms": latency_ms, "from_cache": False},
+            {"message_id": assistant_id, "latency_ms": latency_ms, "from_cache": False},
         )
 
     except AppException as exc:
@@ -209,60 +204,122 @@ async def stream_chat(user_id: int, question: str, conversation_id: int | None):
         yield sse_event("error", {"message": "回答生成失败，请稍后重试（详情见系统日志）"})
     finally:
         # ---- 中断保护：用户点"停止"或断网时，保存已生成的部分 ----
-        try:
-            if assistant_msg is not None and not finished and answer_parts:
-                db.refresh(assistant_msg)
-                if not assistant_msg.content:
-                    assistant_msg.content = "".join(answer_parts) + "……（回答已中断）"
-                    assistant_msg.citations_json = json.dumps(citations, ensure_ascii=False)
-                    assistant_msg.latency_ms = int((time.perf_counter() - started) * 1000)
-                    db.commit()
-                    logger.info("已保存被中断的回答（%s 字）", len(answer_parts))
-        except Exception:  # noqa: BLE001
-            logger.exception("保存被中断的回答失败")
-        db.close()
-        _ = cache_saved  # 供调试用（当前无需额外处理）
+        # （用独立线程执行——finally 里不能 await，也不能阻塞）
+        if assistant_id is not None and not finished and answer_parts:
+            threading.Thread(
+                target=_db_save_partial,
+                args=(
+                    assistant_id,
+                    "".join(answer_parts) + "……（回答已中断）",
+                    json.dumps(citations, ensure_ascii=False),
+                    int((time.perf_counter() - started) * 1000),
+                ),
+                daemon=True,
+                name="partial-save",
+            ).start()
 
 
-def _need_rewrite(question: str) -> bool:
-    """判断是否需要指代改写：短问题或含代词的问题（多轮时）"""
-    if len(question) <= _REWRITE_MAX_LEN:
-        return True
-    return any(p in question for p in _PRONOUNS)
+# ---------------------------------------------------------------------------
+# 数据库操作（每个函数独立短连接，供线程池调用——绝不跨线程共享 Session）
+# ---------------------------------------------------------------------------
 
 
-async def _rewrite_question(question: str, history: list[tuple[str, str]]) -> str | None:
-    """
-    用大模型把问题改写成可独立检索的完整问句；失败或无需改写时返回 None（用原问题）。
-
-    注意：deepseek-flash 是"先思考再回答"的模型，max_tokens 必须给足，
-    否则思考过程会把额度耗尽、正文为空（曾实测踩坑）。
-    """
+def _db_prepare_chat(
+    user_id: int, conversation_id: int | None, question: str
+) -> tuple[int, int, list[tuple[str, str]]]:
+    """会话 + 用户消息一次搞定，并带回最近对话历史"""
+    db = SessionLocal()
     try:
-        model = get_chat_model(temperature=0.0, max_tokens=800)
-        messages = build_rewrite_messages(question, history)
-        response = await model.ainvoke(messages)
+        conv = get_or_create_for_chat(db, user_id, conversation_id, question)
+        user_msg = Message(conversation_id=conv.id, role="user", content=question)
+        db.add(user_msg)
+        db.commit()
+        db.refresh(user_msg)
+        history = _recent_history(db, conv.id, exclude_id=user_msg.id)
+        return conv.id, user_msg.id, history
+    finally:
+        db.close()
 
-        text = str(response.content or "").strip()
-        # 清洗：去掉引号包裹、可能的"改写后："前缀，只保留第一行
-        for quote in ('"', "'", "“", "”", "「", "」"):
-            text = text.strip(quote)
-        text = re.sub(r"^(改写后(的)?(检索)?(问题|问句)[：:]\s*)", "", text)
-        text = text.split("\n")[0].strip()
 
-        if not text:
-            logger.warning("指代改写返回为空（可能 max_tokens 不足），改用原问题检索")
-            return None
-        if text == question:
-            logger.info("指代改写：模型判定无需改写，按原问题检索")
-            return None
-        if len(text) > 100:
-            logger.warning("指代改写结果过长，改用原问题检索：%s", text[:60])
-            return None
-        return text
+def _db_create_placeholder(conv_id: int) -> int:
+    """创建"生成中"的助手消息占位，返回消息 id"""
+    db = SessionLocal()
+    try:
+        msg = Message(conversation_id=conv_id, role="assistant", content="", citations_json="[]")
+        db.add(msg)
+        db.commit()
+        db.refresh(msg)
+        return msg.id
+    finally:
+        db.close()
+
+
+def _db_create_cached_answer(
+    conv_id: int, answer: str, citations_json: str, latency_ms: int
+) -> int:
+    """缓存命中：一次性创建完整的助手消息"""
+    db = SessionLocal()
+    try:
+        msg = Message(
+            conversation_id=conv_id,
+            role="assistant",
+            content=answer,
+            citations_json=citations_json,
+            from_cache=1,
+            latency_ms=latency_ms,
+        )
+        db.add(msg)
+        db.commit()
+        db.refresh(msg)
+        return msg.id
+    finally:
+        db.close()
+
+
+def _db_finish_answer(
+    assistant_id: int,
+    content: str,
+    citations_json: str,
+    is_fallback: bool,
+    latency_ms: int,
+    user_msg_id: int | None,
+    rewritten: str | None,
+) -> None:
+    """生成完成：写入完整回答 + 改写记录（一次提交）"""
+    db = SessionLocal()
+    try:
+        msg = db.get(Message, assistant_id)
+        if msg is not None:
+            msg.content = content
+            msg.citations_json = citations_json
+            msg.is_fallback = 1 if is_fallback else 0
+            msg.latency_ms = latency_ms
+        if user_msg_id and rewritten:
+            user_msg = db.get(Message, user_msg_id)
+            if user_msg is not None:
+                user_msg.rewritten_question = rewritten
+        db.commit()
+    finally:
+        db.close()
+
+
+def _db_save_partial(
+    assistant_id: int, content: str, citations_json: str, latency_ms: int
+) -> None:
+    """保存被中断的部分回答（在独立线程中执行）"""
+    db = SessionLocal()
+    try:
+        msg = db.get(Message, assistant_id)
+        if msg is not None and not msg.content:
+            msg.content = content
+            msg.citations_json = citations_json
+            msg.latency_ms = latency_ms
+            db.commit()
+            logger.info("已保存被中断的回答（%s 字）", len(content))
     except Exception:  # noqa: BLE001
-        logger.exception("指代改写失败，改用原问题检索")
-    return None
+        logger.exception("保存被中断的回答失败")
+    finally:
+        db.close()
 
 
 def _content_version() -> int:
@@ -299,3 +356,43 @@ def _recent_history(db, conversation_id: int, exclude_id: int, rounds: int = _HI
         .limit(rounds * 2)
     ).all()
     return [(m.role, m.content) for m in reversed(messages) if m.content]
+
+
+def _need_rewrite(question: str) -> bool:
+    """判断是否需要指代改写：短问题或含代词的问题（多轮时）"""
+    if len(question) <= _REWRITE_MAX_LEN:
+        return True
+    return any(p in question for p in _PRONOUNS)
+
+
+async def _rewrite_question(question: str, history: list[tuple[str, str]]) -> str | None:
+    """
+    用大模型把问题改写成可独立检索的完整问句；失败或无需改写时返回 None（用原问题）。
+
+    注意：deepseek-flash 是"先思考再回答"的模型，max_tokens 必须给足，
+    否则思考过程会把额度耗尽、正文为空（曾实测踩坑）。
+    """
+    try:
+        model = get_chat_model(temperature=0.0, max_tokens=800)
+        messages = build_rewrite_messages(question, history)
+        response = await model.ainvoke(messages)
+
+        text = str(response.content or "").strip()
+        for quote in ('"', "'", "“", "”", "「", "」"):
+            text = text.strip(quote)
+        text = re.sub(r"^(改写后(的)?(检索)?(问题|问句)[：:]\s*)", "", text)
+        text = text.split("\n")[0].strip()
+
+        if not text:
+            logger.warning("指代改写返回为空（可能 max_tokens 不足），改用原问题检索")
+            return None
+        if text == question:
+            logger.info("指代改写：模型判定无需改写，按原问题检索")
+            return None
+        if len(text) > 100:
+            logger.warning("指代改写结果过长，改用原问题检索：%s", text[:60])
+            return None
+        return text
+    except Exception:  # noqa: BLE001
+        logger.exception("指代改写失败，改用原问题检索")
+    return None

@@ -15,10 +15,16 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from .config import DB_PATH
 
-# 连接引擎：check_same_thread=False 是 SQLite 配合 Web 服务的标准写法
+# 连接引擎：check_same_thread=False 是 SQLite 配合 Web 服务的标准写法。
+# 连接池参数经过压力测试调优：高并发时默认的 5+10 个连接会被瞬间抽干，
+# 导致 "QueuePool limit ... connection timed out" 错误（实测复现过）。
 engine = create_engine(
     f"sqlite:///{DB_PATH}",
-    connect_args={"check_same_thread": False, "timeout": 15},
+    connect_args={"check_same_thread": False, "timeout": 30},
+    pool_size=20,          # 常备连接数
+    max_overflow=40,       # 高峰期可临时超借到 60 个
+    pool_timeout=30,       # 借不到连接的等待上限（秒）
+    pool_recycle=3600,     # 连接用满 1 小时回收重建
     echo=False,
 )
 

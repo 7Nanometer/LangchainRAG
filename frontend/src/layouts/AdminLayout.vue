@@ -6,6 +6,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, DataAnalysis, Files } from '@element-plus/icons-vue'
+import NanoLogo from '@/components/common/NanoLogo.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,10 +30,12 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
   <div class="admin-layout" :class="{ mobile: isMobile }">
     <aside class="admin-sidebar">
       <div class="admin-title">
-        <el-button text :icon="ArrowLeft" size="small" @click="router.push('/chat')">
-          返回问答
-        </el-button>
+        <NanoLogo :size="16" :name-size="12.5" />
       </div>
+      <button class="back-link" type="button" @click="router.push('/chat')">
+        <el-icon :size="13"><ArrowLeft /></el-icon>
+        <span>返回问答</span>
+      </button>
       <el-menu
         :default-active="activeMenu"
         :mode="isMobile ? 'horizontal' : 'vertical'"
@@ -48,6 +51,7 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
           <span>知识库管理</span>
         </el-menu-item>
       </el-menu>
+      <div class="admin-foot u-label">管理后台</div>
     </aside>
 
     <section class="admin-body">
@@ -60,27 +64,48 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
 .admin-layout {
   height: 100%;
   display: flex;
+  background: var(--paper);
 }
 .admin-sidebar {
-  width: 210px;
+  width: 208px;
   flex-shrink: 0;
-  background: var(--sidebar-bg);
-  border-right: 1px solid var(--border-color);
+  background: var(--paper);
+  border-right: 1px solid var(--rule);
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 .admin-title {
-  padding: 12px 16px 8px;
+  padding: 16px 16px 12px;
+}
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 12px 10px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+  cursor: pointer;
+  border-radius: var(--r-1);
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.back-link:hover {
+  color: var(--ink);
+  background: var(--tint);
 }
 .admin-menu {
   border-right: none;
   background: transparent;
+  --el-menu-bg-color: transparent;
 }
-.admin-body {
-  flex: 1;
-  min-width: 0;
-  overflow-y: auto;
-  padding: 20px 24px;
+.admin-foot {
+  margin-top: auto;
+  padding: 14px 16px;
+  border-top: 1px solid var(--rule-2);
 }
 
 /* 窄屏：菜单移到顶部横向排列 */
@@ -92,10 +117,14 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
   flex-direction: row;
   align-items: center;
   border-right: none;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--rule);
 }
 .admin-layout.mobile .admin-title {
   padding: 8px 8px 8px 14px;
+  flex-shrink: 0;
+}
+.admin-layout.mobile .back-link {
+  margin: 0 4px;
   flex-shrink: 0;
 }
 .admin-layout.mobile .admin-menu {
@@ -103,7 +132,10 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
   min-width: 0;
   overflow-x: auto;
 }
+.admin-layout.mobile .admin-foot {
+  display: none;
+}
 .admin-layout.mobile .admin-body {
-  padding: 14px;
+  padding: 16px;
 }
 </style>

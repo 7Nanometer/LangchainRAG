@@ -1,0 +1,406 @@
+/**
+ * Element Plus 组件改造层 —— 让组件库说本世界的语言
+ *
+ * 原则：
+ *   - 主色 = 墨黑（不是蓝）：主按钮像一枚"盖章"，其余一律发丝描边
+ *   - 圆角收紧到 3px：印刷品的直角气质
+ *   - 阴影只在浮层（弹窗/下拉）出现：带偏移的柔影，不做光晕
+ *   - 组件本身仍是标准组件（怎么点、怎么填都不变），只换皮
+ */
+
+/* ================= 变量映射 ================= */
+:root {
+  --el-color-primary: #111111;
+  --el-color-primary-light-3: #3a3a3a;
+  --el-color-primary-light-5: #5c5c5c;
+  --el-color-primary-light-7: #9a9a9a;
+  --el-color-primary-light-8: #c9c9c9;
+  --el-color-primary-light-9: #f2f2f0;
+  --el-color-primary-dark-2: #000000;
+
+  --el-color-danger: #c8372d;
+  --el-color-danger-light-9: #faf0ef;
+  --el-color-success: #038141;
+  --el-color-success-light-9: #f0f7f3;
+  --el-color-warning: #b36b00;
+  --el-color-warning-light-9: #faf5ec;
+  --el-color-info: #6f6f6f;
+  --el-color-info-light-9: #f4f4f2;
+
+  --el-text-color-primary: var(--ink);
+  --el-text-color-regular: var(--ink-2);
+  --el-text-color-secondary: var(--ink-3);
+  --el-text-color-placeholder: var(--ink-3);
+  --el-text-color-disabled: var(--ink-3);
+
+  --el-border-color: var(--rule);
+  --el-border-color-light: var(--rule);
+  --el-border-color-lighter: var(--rule-2);
+  --el-border-color-extra-light: var(--rule-2);
+  --el-border-color-hover: var(--ink-3);
+
+  --el-bg-color: var(--panel);
+  --el-bg-color-page: var(--paper);
+  --el-bg-color-overlay: var(--panel);
+  --el-fill-color: var(--paper-2);
+  --el-fill-color-light: var(--tint);
+  --el-fill-color-lighter: var(--tint);
+  --el-fill-color-blank: var(--panel);
+
+  --el-border-radius-base: 3px;
+  --el-border-radius-small: 2px;
+  --el-border-radius-round: 3px;
+
+  --el-font-family: var(--font-ui);
+  --el-font-size-base: 14px;
+
+  --el-box-shadow: 0 10px 32px rgba(0, 0, 0, 0.1);
+  --el-box-shadow-light: 0 6px 20px rgba(0, 0, 0, 0.08);
+  --el-box-shadow-lighter: 0 4px 14px rgba(0, 0, 0, 0.07);
+}
+
+html.dark {
+  --el-color-primary: #ececec;
+  --el-color-primary-light-3: #c9c9c9;
+  --el-color-primary-light-5: #9c9c9c;
+  --el-color-primary-light-7: #5c5c5c;
+  --el-color-primary-light-8: #3a3a3a;
+  --el-color-primary-light-9: #232323;
+  --el-color-primary-dark-2: #ffffff;
+
+  --el-color-danger: #e0604f;
+  --el-color-success: #2da05e;
+  --el-color-warning: #d08a2e;
+  --el-color-info: #8f8f8f;
+  --el-color-danger-light-9: #241715;
+  --el-color-success-light-9: #16201a;
+  --el-color-warning-light-9: #241d13;
+  --el-color-info-light-9: #1c1c1c;
+
+  --el-box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+  --el-box-shadow-light: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --el-box-shadow-lighter: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* ================= 按钮 ================= */
+.el-button {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.el-button--primary {
+  --el-button-hover-bg-color: #2e2e2e;
+  --el-button-hover-border-color: #2e2e2e;
+  --el-button-active-bg-color: #000000;
+  --el-button-active-border-color: #000000;
+}
+html.dark .el-button--primary {
+  --el-button-text-color: #101010;
+  --el-button-hover-text-color: #101010;
+  --el-button-active-text-color: #101010;
+  --el-button-hover-bg-color: #ffffff;
+  --el-button-hover-border-color: #ffffff;
+  --el-button-active-bg-color: #d6d6d6;
+  --el-button-active-border-color: #d6d6d6;
+}
+.el-button.is-circle {
+  border-radius: var(--r-1);
+}
+.el-button.is-text {
+  padding: 4px 8px;
+}
+.el-button.is-text:hover {
+  background: var(--tint);
+}
+.el-button--large {
+  height: 40px;
+}
+
+/* ================= 输入框 ================= */
+.el-input__wrapper,
+.el-textarea__inner {
+  box-shadow: 0 0 0 1px var(--rule) inset;
+  border-radius: var(--r-1);
+  background: var(--panel);
+  transition: box-shadow var(--dur-1) var(--ease);
+}
+.el-input__wrapper:hover,
+.el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--ink-3) inset;
+}
+.el-input__wrapper.is-focus,
+.el-input__wrapper:focus-within,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1.5px var(--ink) inset;
+}
+.el-input__inner {
+  color: var(--ink);
+}
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+  color: var(--ink-3);
+}
+
+/* ================= 表单 ================= */
+.el-form-item__label {
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+/* 隐藏 Element 默认的红色必填星号（红在本世界是"印章色"，只用于警示） */
+.el-form-item.is-required:not(.is-no-asterisk) > .el-form-item__label::before {
+  display: none;
+}
+.el-form-item.is-required:not(.is-no-asterisk) .el-form-item__label-wrap > .el-form-item__label::before {
+  display: none;
+}
+.el-form-item__error {
+  font-size: var(--fs-12);
+  color: var(--stamp);
+}
+
+/* ================= 浮层（下拉/弹窗/提示） ================= */
+.el-popper.is-light,
+.el-dropdown__popper,
+.el-select__popper {
+  border: 1px solid var(--rule) !important;
+  border-radius: var(--r-1) !important;
+  box-shadow: var(--el-box-shadow-light) !important;
+}
+.el-dropdown-menu {
+  padding: 4px;
+}
+.el-dropdown-menu__item {
+  font-size: var(--fs-13);
+  border-radius: var(--r-2);
+  padding: 6px 12px;
+}
+.el-dropdown-menu__item:not(.is-disabled):hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+.el-dropdown-menu__item--divided {
+  border-top: 1px solid var(--rule-2);
+  margin-top: 4px;
+}
+.el-dropdown-menu__item--divided::before {
+  display: none;
+}
+
+.el-dialog {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+  padding: 20px 22px 16px;
+}
+.el-dialog__title {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  color: var(--ink);
+}
+.el-dialog__header {
+  padding: 0 0 14px;
+  margin-right: 24px;
+}
+.el-dialog__body {
+  padding: 0;
+  color: var(--ink-2);
+}
+.el-dialog__footer {
+  padding: 16px 0 0;
+}
+.el-message-box {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+}
+.el-message-box__title {
+  font-size: var(--fs-16);
+  font-weight: 700;
+}
+
+.el-tooltip__popper.is-dark,
+.el-popper.is-dark {
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--r-1);
+  font-size: var(--fs-12);
+  padding: 5px 9px;
+}
+.el-popper.is-dark .el-popper__arrow::before {
+  background: var(--ink);
+}
+
+/* ================= 消息提示（Toast） ================= */
+.el-message {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+  background: var(--panel);
+  box-shadow: var(--el-box-shadow-light);
+  padding: 9px 14px;
+  min-width: auto;
+}
+.el-message .el-message__content {
+  color: var(--ink);
+  font-size: var(--fs-13);
+}
+.el-message--success .el-message__icon,
+.el-message--success .el-message__content::before {
+  color: var(--ok);
+}
+.el-message--error .el-message__icon {
+  color: var(--stamp);
+}
+.el-message--warning .el-message__icon {
+  color: var(--warn);
+}
+
+/* ================= 标签（一律收成发丝小签） ================= */
+.el-tag {
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-2);
+  color: var(--ink-2);
+  font-size: var(--fs-11);
+  height: 20px;
+  padding: 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+.el-tag--success {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.el-tag--danger {
+  border-color: var(--stamp);
+  color: var(--stamp);
+}
+.el-tag--warning {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.el-tag--primary {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* ================= 表格（发丝表格） ================= */
+.el-table {
+  --el-table-border-color: var(--rule-2);
+  --el-table-header-text-color: var(--ink-3);
+  --el-table-text-color: var(--ink);
+  --el-table-row-hover-bg-color: var(--tint);
+  --el-table-header-bg-color: transparent;
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  font-size: var(--fs-13);
+}
+.el-table th.el-table__cell {
+  font-size: var(--fs-11);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 8px 0;
+}
+.el-table td.el-table__cell {
+  padding: 9px 0;
+}
+.el-table::before,
+.el-table__inner-wrapper::before {
+  display: none;
+}
+
+/* ================= 进度条（1px 墨线） ================= */
+.el-progress-bar__outer {
+  background: var(--rule-2);
+  border-radius: 0;
+  height: 2px !important;
+}
+.el-progress-bar__inner {
+  background: var(--ink);
+  border-radius: 0;
+}
+.el-progress__text {
+  font-size: var(--fs-11) !important;
+  color: var(--ink-3) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================= 上传（虚线工作区） ================= */
+.el-upload-dragger {
+  background: transparent;
+  border: 1px dashed var(--rule);
+  border-radius: var(--r-1);
+  padding: 28px 20px;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.el-upload-dragger:hover {
+  border-color: var(--ink);
+  background: var(--tint);
+}
+.el-upload-dragger.is-dragover {
+  border-color: var(--ink);
+  background: var(--tint-2);
+}
+
+/* ================= 其他 ================= */
+.el-avatar {
+  border-radius: var(--r-1);
+  font-variant-numeric: tabular-nums;
+}
+.el-loading-mask {
+  background: color-mix(in srgb, var(--paper) 72%, transparent);
+}
+.el-loading-spinner .circular .path {
+  stroke: var(--ink-3);
+}
+.el-empty__description p {
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+}
+.el-result__title p {
+  font-size: var(--fs-34);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.el-result__subtitle p {
+  font-size: var(--fs-13);
+  color: var(--ink-3);
+}
+.el-drawer {
+  background: var(--paper);
+}
+.el-descriptions {
+  --el-descriptions-item-bordered-label-background: var(--paper-2);
+}
+.el-descriptions__label {
+  color: var(--ink-3) !important;
+  font-weight: 600 !important;
+  font-size: var(--fs-12) !important;
+}
+.el-descriptions__content {
+  color: var(--ink) !important;
+  font-size: var(--fs-13) !important;
+}
+.el-menu {
+  border-right: none;
+  background: transparent;
+}
+.el-menu-item {
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  height: 38px;
+  line-height: 38px;
+  border-radius: var(--r-1);
+  margin: 1px 6px;
+}
+.el-menu-item:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+.el-menu-item.is-active {
+  background: var(--tint-2);
+  color: var(--ink);
+  font-weight: 600;
+}
+.el-menu--horizontal > .el-menu-item {
+  border-bottom: none;
+  height: 38px;
+  line-height: 38px;
+}

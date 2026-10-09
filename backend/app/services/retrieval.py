@@ -29,11 +29,14 @@ def retrieve(
     question: str,
     top_k: int | None = None,
     query_vector: list[float] | None = None,
+    stats: dict | None = None,
 ) -> tuple[list[dict], bool]:
     """
     检索与问题最相关的资料片段。
 
     query_vector: 可选——调用方已经算过问题向量时直接传入（省一次计算）。
+    stats: 可选——传入一个空字典时，会写入本次检索的漏斗数据
+           （向量/关键词命中数、融合条数、采纳条数、阈值），供前端"回执面板"披露。
 
     返回 (hits, is_fallback)：
       hits: [{index, chunk_id, document_id, filename, content, rerank_score}]
@@ -57,7 +60,14 @@ def retrieve(
 
     # ---- 3. RRF 融合 ----
     fused = _rrf_fuse(vec_hits, kw_hits)
+    if stats is not None:
+        stats["vector_hits"] = len(vec_hits)
+        stats["bm25_hits"] = len(kw_hits)
+        stats["fused"] = len(fused)
+        stats["threshold"] = settings.rerank_threshold
     if not fused:
+        if stats is not None:
+            stats["adopted"] = 0
         logger.info("检索结果为空（问题：%s）", question[:40])
         return [], True
 
@@ -80,6 +90,9 @@ def retrieve(
                 "rerank_score": item["rerank_score"],
             }
         )
+
+    if stats is not None:
+        stats["adopted"] = len(hits)
 
     is_fallback = len(hits) == 0
     logger.info(

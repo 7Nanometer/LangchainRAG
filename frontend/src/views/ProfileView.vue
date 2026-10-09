@@ -68,43 +68,60 @@ async function onSubmit() {
 
 <template>
   <div class="profile-page">
-    <div class="profile-card">
-      <h3 class="card-title">账号信息</h3>
-      <el-descriptions :column="1" border>
-        <el-descriptions-item label="用户名">{{ userStore.username }}</el-descriptions-item>
-        <el-descriptions-item label="角色">
-          {{ userStore.isAdmin ? '管理员（可管理知识库）' : '普通用户（问答）' }}
-        </el-descriptions-item>
-      </el-descriptions>
-    </div>
+    <div class="profile-inner">
+      <div class="page-head profile-head">
+        <div>
+          <h2 class="page-title">个人设置</h2>
+          <p class="page-sub">账号信息与密码安全</p>
+        </div>
+      </div>
 
-    <div class="profile-card">
-      <h3 class="card-title">修改密码</h3>
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="90px"
-        style="max-width: 460px"
-      >
-        <el-form-item label="旧密码" prop="old_password">
-          <el-input v-model="form.old_password" type="password" show-password />
-        </el-form-item>
-        <el-form-item label="新密码" prop="new_password">
-          <el-input
-            v-model="form.new_password"
-            type="password"
-            show-password
-            placeholder="至少 8 位，含字母和数字"
-          />
-        </el-form-item>
-        <el-form-item label="确认新密码" prop="confirm">
-          <el-input v-model="form.confirm" type="password" show-password />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :loading="loading" @click="onSubmit">保存修改</el-button>
-        </el-form-item>
-      </el-form>
+      <section class="panel">
+        <div class="panel-pad">
+          <h3 class="panel-title">账号信息</h3>
+          <div class="kv-row">
+            <span class="kv-label u-label">用户名</span>
+            <span class="kv-value">{{ userStore.username }}</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-label u-label">角色</span>
+            <span class="kv-value">
+              {{ userStore.isAdmin ? '管理员（可管理知识库）' : '普通用户（问答）' }}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-pad">
+          <h3 class="panel-title">修改密码</h3>
+          <el-form
+            ref="formRef"
+            :model="form"
+            :rules="rules"
+            label-position="top"
+            class="pwd-form"
+          >
+            <el-form-item label="旧密码" prop="old_password">
+              <el-input v-model="form.old_password" type="password" show-password />
+            </el-form-item>
+            <el-form-item label="新密码" prop="new_password">
+              <el-input
+                v-model="form.new_password"
+                type="password"
+                show-password
+                placeholder="至少 8 位，含字母和数字"
+              />
+            </el-form-item>
+            <el-form-item label="确认新密码" prop="confirm">
+              <el-input v-model="form.confirm" type="password" show-password />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" :loading="loading" @click="onSubmit">保存修改</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -113,22 +130,37 @@ async function onSubmit() {
 .profile-page {
   height: 100%;
   overflow-y: auto;
-  padding: 24px;
+  padding: 26px 24px 40px;
+}
+.profile-inner {
+  max-width: 620px;
+  margin: 0 auto;
+}
+.profile-head {
+  margin-bottom: 18px;
+}
+.panel {
+  margin-bottom: 18px;
+}
+.kv-row {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
-  align-items: flex-start;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule-2);
 }
-.profile-card {
-  width: 100%;
-  max-width: 640px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px 24px;
+.kv-row:last-child {
+  border-bottom: none;
 }
-.card-title {
-  margin: 0 0 16px;
-  font-size: 15px;
+.kv-label {
+  width: 84px;
+  flex-shrink: 0;
+}
+.kv-value {
+  font-size: var(--fs-13);
+  color: var(--ink);
+}
+.pwd-form {
+  max-width: 420px;
 }
 </style>

@@ -1,7 +1,7 @@
 <script setup>
 /**
  * 数据看板（仅管理员）
- * 统计卡片 + 提问趋势图 + 被引用资料排行 + 未命中问题清单 + 系统状态
+ * 运营数据以"披露表格"呈现 + 提问趋势 + 被引用排行 + 未命中清单 + 系统状态
  */
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
@@ -47,28 +47,71 @@ async function load() {
   }
 }
 
+/** 读取设计令牌（图表也用同一套墨色与发丝线） */
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+
 function renderChart() {
   if (!trendRef.value) return
   if (chart) chart.dispose()
-  chart = echarts.init(trendRef.value, themeStore.isDark ? 'dark' : null)
+  const ink = cssVar('--ink')
+  const ink2 = cssVar('--ink-2')
+  const ink3 = cssVar('--ink-3')
+  const rule = cssVar('--rule')
+  const rule2 = cssVar('--rule-2')
+  const paper = cssVar('--panel')
+
+  chart = echarts.init(trendRef.value)
   chart.setOption({
     backgroundColor: 'transparent',
-    tooltip: { trigger: 'axis' },
-    grid: { left: 44, right: 20, top: 30, bottom: 32 },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: paper,
+      borderColor: rule,
+      borderWidth: 1,
+      padding: [6, 10],
+      textStyle: { color: ink, fontSize: 12 },
+      axisPointer: { lineStyle: { color: ink3, width: 1, type: 'dashed' } },
+    },
+    grid: { left: 40, right: 16, top: 24, bottom: 30 },
     xAxis: {
       type: 'category',
       data: trendData.map((x) => x.date.slice(5)),
-      axisLine: { lineStyle: { color: 'rgba(128,128,128,0.3)' } },
+      axisLine: { lineStyle: { color: rule } },
+      axisTick: { show: false },
+      axisLabel: { color: ink3, fontSize: 11, fontFamily: 'inherit' },
     },
-    yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { opacity: 0.25 } } },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLine: { show: false },
+      axisLabel: { color: ink3, fontSize: 11, fontFamily: 'inherit' },
+      splitLine: { lineStyle: { color: rule2 } },
+    },
     series: [
       {
         name: '提问数',
         type: 'line',
-        smooth: true,
-        symbolSize: 7,
         data: trendData.map((x) => x.count),
-        areaStyle: { opacity: 0.15 },
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { color: ink, width: 1.6 },
+        itemStyle: { color: ink },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(17,17,17,0.07)' },
+              { offset: 1, color: 'rgba(17,17,17,0)' },
+            ],
+          },
+        },
+        emphasis: { itemStyle: { color: ink2 } },
       },
     ],
   })
@@ -115,240 +158,250 @@ function modelText(status) {
 <template>
   <div v-loading="loading">
     <div class="page-head">
-      <h2 class="page-title">数据看板</h2>
+      <div>
+        <h2 class="page-title">数据看板</h2>
+        <p class="page-sub">运营数据逐项披露 · 数据来自全部已落库回执</p>
+      </div>
       <el-button :icon="Refresh" @click="load">刷新</el-button>
     </div>
 
-    <!-- 统计卡片 -->
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-num">{{ overview.user_count ?? '—' }}</div>
-        <div class="stat-label">注册用户</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">{{ overview.conversation_count ?? '—' }}</div>
-        <div class="stat-label">累计会话</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">{{ overview.questions_today ?? '—' }}</div>
-        <div class="stat-label">今日提问（近7天 {{ overview.questions_week ?? 0 }}）</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">{{ overview.message_count ?? '—' }}</div>
-        <div class="stat-label">消息总数</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">{{ percent(overview.cache_hit_rate) }}</div>
-        <div class="stat-label">缓存命中率（省时省钱）</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">{{ latencyText(overview.avg_latency_ms) }}</div>
-        <div class="stat-label">平均回答耗时</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num">
-          👍 {{ overview.likes ?? 0 }} ／ 👎 {{ overview.dislikes ?? 0 }}
+    <!-- 运营数据：一张"披露表格"，不是一排卡片 -->
+    <section class="panel facts-panel">
+      <div class="facts">
+        <div class="fact">
+          <span class="u-label">注册用户</span>
+          <span class="fact-num num">{{ overview.user_count ?? '—' }}</span>
         </div>
-        <div class="stat-label">用户评价</div>
+        <div class="fact">
+          <span class="u-label">累计会话</span>
+          <span class="fact-num num">{{ overview.conversation_count ?? '—' }}</span>
+        </div>
+        <div class="fact">
+          <span class="u-label">今日提问</span>
+          <span class="fact-num num">{{ overview.questions_today ?? '—' }}</span>
+          <span class="fact-note num">近 7 天 {{ overview.questions_week ?? 0 }}</span>
+        </div>
+        <div class="fact">
+          <span class="u-label">消息总数</span>
+          <span class="fact-num num">{{ overview.message_count ?? '—' }}</span>
+        </div>
+        <div class="fact">
+          <span class="u-label">缓存命中率</span>
+          <span class="fact-num num">{{ percent(overview.cache_hit_rate) }}</span>
+          <span class="fact-note">秒回复用省算力</span>
+        </div>
+        <div class="fact">
+          <span class="u-label">平均回答耗时</span>
+          <span class="fact-num num">{{ latencyText(overview.avg_latency_ms) }}</span>
+        </div>
+        <div class="fact">
+          <span class="u-label">用户评价</span>
+          <span class="fact-num num">
+            <span class="ok">赞 {{ overview.likes ?? 0 }}</span>
+            <span class="sep">／</span>
+            <span class="bad">踩 {{ overview.dislikes ?? 0 }}</span>
+          </span>
+        </div>
+        <div class="fact">
+          <span class="u-label">未命中率</span>
+          <span class="fact-num num">{{ percent(overview.fallback_rate) }}</span>
+          <span class="fact-note num">
+            {{ overview.document_count ?? 0 }} 份资料 · {{ overview.chunk_count ?? 0 }} 段
+          </span>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-num">{{ percent(overview.fallback_rate) }}</div>
-        <div class="stat-label">未命中率（{{ overview.document_count ?? 0 }} 份资料 / {{ overview.chunk_count ?? 0 }} 片段）</div>
-      </div>
-    </div>
+    </section>
 
     <!-- 趋势图 -->
-    <div class="panel">
-      <div class="panel-title">近 14 天提问量</div>
+    <section class="panel panel-pad">
+      <h3 class="panel-title">近 14 天提问量</h3>
       <div ref="trendRef" class="trend-chart" />
-    </div>
+    </section>
 
     <div class="two-col">
       <!-- 被引用排行 -->
-      <div class="panel">
-        <div class="panel-title">被引用最多的资料</div>
-        <el-empty v-if="!topDocs.length" description="暂无数据" :image-size="60" />
-        <div v-else class="rank-list">
-          <div v-for="(d, i) in topDocs" :key="d.filename" class="rank-item">
-            <span class="rank-no" :class="{ top: i < 3 }">{{ i + 1 }}</span>
-            <span class="rank-name" :title="d.filename">{{ d.filename }}</span>
-            <span class="rank-count">{{ d.count }} 次</span>
+      <section class="panel panel-pad">
+        <h3 class="panel-title">被引用最多的资料</h3>
+        <el-empty v-if="!topDocs.length" description="暂无数据" :image-size="52" />
+        <div v-else class="rule-list">
+          <div v-for="(d, i) in topDocs" :key="d.filename" class="rule-row">
+            <span class="row-no num">{{ String(i + 1).padStart(2, '0') }}</span>
+            <span class="row-name" :title="d.filename">{{ d.filename }}</span>
+            <span class="row-count num">{{ d.count }} 次</span>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- 未命中清单 -->
-      <div class="panel">
-        <div class="panel-title">未命中问题（可据此补充资料）</div>
-        <el-empty v-if="!unanswered.length" description="暂无未命中问题" :image-size="60" />
-        <div v-else class="unanswered-list">
-          <div v-for="(u, i) in unanswered" :key="i" class="unanswered-item">
-            <div class="unanswered-q">{{ u.question }}</div>
-            <div class="unanswered-time">{{ formatTime(u.time) }}</div>
+      <section class="panel panel-pad">
+        <h3 class="panel-title">未命中问题（可据此补充资料）</h3>
+        <el-empty v-if="!unanswered.length" description="暂无未命中问题" :image-size="52" />
+        <div v-else class="rule-list">
+          <div v-for="(u, i) in unanswered" :key="i" class="rule-row">
+            <span class="row-name">{{ u.question }}</span>
+            <span class="row-count num">{{ formatTime(u.time).slice(5) }}</span>
           </div>
         </div>
-      </div>
+      </section>
     </div>
 
     <!-- 系统状态 -->
-    <div class="panel">
-      <div class="panel-title">系统状态</div>
-      <div class="sys-grid">
-        <div class="sys-item">
-          <span class="sys-label">向量模型</span>
-          <span class="sys-value">{{ modelText(system.embedding_model) }}</span>
+    <section class="panel panel-pad">
+      <h3 class="panel-title">系统状态</h3>
+      <div class="kv-grid">
+        <div class="kv-row">
+          <span class="kv-label u-label">向量模型</span>
+          <span class="kv-value">{{ modelText(system.embedding_model) }}</span>
         </div>
-        <div class="sys-item">
-          <span class="sys-label">精排模型</span>
-          <span class="sys-value">{{ modelText(system.reranker_model) }}</span>
+        <div class="kv-row">
+          <span class="kv-label u-label">精排模型</span>
+          <span class="kv-value">{{ modelText(system.reranker_model) }}</span>
         </div>
-        <div class="sys-item">
-          <span class="sys-label">知识片段总数</span>
-          <span class="sys-value">{{ system.vector_count ?? '—' }}</span>
+        <div class="kv-row">
+          <span class="kv-label u-label">知识片段总数</span>
+          <span class="kv-value num">{{ system.vector_count ?? '—' }}</span>
         </div>
-        <div class="sys-item">
-          <span class="sys-label">待处理文档</span>
-          <span class="sys-value">{{ system.queue_size ?? 0 }} 个</span>
+        <div class="kv-row">
+          <span class="kv-label u-label">待处理文档</span>
+          <span class="kv-value num">{{ system.queue_size ?? 0 }} 个</span>
         </div>
-        <div class="sys-item">
-          <span class="sys-label">本次运行时长</span>
-          <span class="sys-value">{{ uptimeText(system.uptime_seconds) }}</span>
+        <div class="kv-row">
+          <span class="kv-label u-label">本次运行时长</span>
+          <span class="kv-value num">{{ uptimeText(system.uptime_seconds) }}</span>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
+/* ---- 披露表格 ---- */
+.facts-panel {
+  margin-bottom: var(--sp-4);
 }
-.page-title {
-  margin: 0;
-  font-size: 18px;
-}
-.stat-grid {
+.facts {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(4, 1fr);
 }
-.stat-card {
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 14px 16px;
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px 18px;
+  border-right: 1px solid var(--rule-2);
+  border-bottom: 1px solid var(--rule-2);
 }
-.stat-num {
-  font-size: 20px;
+.fact:nth-child(4n) {
+  border-right: none;
+}
+.fact:nth-last-child(-n + 4) {
+  border-bottom: none;
+}
+.fact-num {
+  font-size: 22px;
   font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
-.stat-label {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--text-second);
+.fact-note {
+  font-size: var(--fs-11);
+  color: var(--ink-3);
 }
-.panel {
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 16px;
+.ok {
+  color: var(--ink);
 }
-.panel-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 12px;
+.bad {
+  color: var(--ink);
 }
+.sep {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
 .trend-chart {
-  height: 240px;
+  height: 230px;
 }
 .two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: var(--sp-4);
+  margin: var(--sp-4) 0;
 }
-@media (max-width: 900px) {
-  .two-col {
-    grid-template-columns: 1fr;
-  }
-}
-.rank-list,
-.unanswered-list {
-  max-height: 260px;
+
+/* ---- 发丝行列表 ---- */
+.rule-list {
+  max-height: 250px;
   overflow-y: auto;
 }
-.rank-item {
+.rule-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 0;
-  border-bottom: 1px dashed var(--border-color);
-  font-size: 13px;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule-2);
+  font-size: var(--fs-13);
 }
-.rank-item:last-child {
+.rule-row:last-child {
   border-bottom: none;
 }
-.rank-no {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  background: rgba(128, 128, 128, 0.12);
-  color: var(--text-second);
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.row-no {
+  color: var(--ink-3);
+  font-size: var(--fs-11);
   flex-shrink: 0;
 }
-.rank-no.top {
-  background: var(--brand);
-  color: #fff;
-}
-.rank-name {
+.row-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.rank-count {
-  color: var(--text-second);
-  font-size: 12px;
+.row-count {
+  color: var(--ink-2);
+  font-size: var(--fs-12);
   flex-shrink: 0;
 }
-.unanswered-item {
-  padding: 8px 0;
-  border-bottom: 1px dashed var(--border-color);
-}
-.unanswered-item:last-child {
-  border-bottom: none;
-}
-.unanswered-q {
-  font-size: 13px;
-}
-.unanswered-time {
-  font-size: 11.5px;
-  color: var(--text-second);
-  margin-top: 2px;
-}
-.sys-grid {
+
+/* ---- 系统状态：披露行 ---- */
+.kv-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--sp-8);
 }
-.sys-item {
+.kv-row {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  font-size: 13px;
-  padding: 6px 10px;
-  background: rgba(128, 128, 128, 0.06);
-  border-radius: 8px;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule-2);
 }
-.sys-label {
-  color: var(--text-second);
+.kv-value {
+  font-size: var(--fs-13);
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  .facts {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .fact:nth-child(4n) {
+    border-right: 1px solid var(--rule-2);
+  }
+  .fact:nth-child(2n) {
+    border-right: none;
+  }
+  .fact:nth-last-child(-n + 4) {
+    border-bottom: 1px solid var(--rule-2);
+  }
+  .fact:nth-last-child(-n + 2) {
+    border-bottom: none;
+  }
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+  .kv-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

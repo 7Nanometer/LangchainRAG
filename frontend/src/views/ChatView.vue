@@ -11,6 +11,7 @@ import ConversationSidebar from '@/components/chat/ConversationSidebar.vue'
 import MessageItem from '@/components/chat/MessageItem.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import WelcomePanel from '@/components/chat/WelcomePanel.vue'
+import NanoLogo from '@/components/common/NanoLogo.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,6 +34,8 @@ const streamingMessage = computed(() => ({
   content: chat.streamText,
   citations: chat.streamCitations,
   is_fallback: chat.streamFallback,
+  from_cache: chat.streamFromCache,
+  retrieval: chat.streamRetrieval,
 }))
 
 onMounted(async () => {
@@ -89,7 +92,7 @@ watch(() => chat.streamText, scrollToBottom)
       v-if="isMobile"
       v-model="drawerVisible"
       direction="ltr"
-      size="260px"
+      size="272px"
       :with-header="false"
       class="conv-drawer"
     >
@@ -100,7 +103,7 @@ watch(() => chat.streamText, scrollToBottom)
       <!-- 手机端顶部细栏 -->
       <div v-if="isMobile" class="mobile-bar">
         <el-button text :icon="MenuIcon" @click="drawerVisible = true">会话</el-button>
-        <span class="mobile-title">知识库智能客服</span>
+        <NanoLogo :size="15" :name-size="12.5" />
         <span class="mobile-spacer" />
       </div>
 
@@ -122,6 +125,7 @@ watch(() => chat.streamText, scrollToBottom)
   height: 100%;
   display: flex;
   min-height: 0;
+  background: var(--paper);
 }
 .chat-main {
   flex: 1;
@@ -136,22 +140,18 @@ watch(() => chat.streamText, scrollToBottom)
   min-height: 0;
 }
 .messages-inner {
-  max-width: 900px;
+  max-width: 820px;
   margin: 0 auto;
-  padding: 20px 20px 8px;
+  padding: 26px 28px 16px;
 }
 .mobile-bar {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--panel-bg);
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
   flex-shrink: 0;
-}
-.mobile-title {
-  font-size: 14px;
-  font-weight: 600;
 }
 .mobile-spacer {
   flex: 1;

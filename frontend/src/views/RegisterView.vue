@@ -3,8 +3,8 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Lock, User } from '@element-plus/icons-vue'
 import { register } from '@/api/auth'
+import NanoLogo from '@/components/common/NanoLogo.vue'
 
 const router = useRouter()
 const formRef = ref()
@@ -21,7 +21,7 @@ const rules = {
     { min: 8, message: '密码至少 8 位', trigger: 'blur' },
     {
       validator: (_rule, value, callback) => {
-        if (value && !(/(?=.*[A-Za-z])(?=.*\d)/.test(value))) {
+        if (value && !/(?=.*[A-Za-z])(?=.*\d)/.test(value)) {
           callback(new Error('密码必须同时包含字母和数字，例如 demo12345'))
         } else {
           callback()
@@ -66,9 +66,10 @@ async function onSubmit() {
 
 <template>
   <div class="auth-page">
-    <div class="auth-card">
-      <div class="auth-brand">创建账号</div>
-      <div class="auth-sub">注册后即可向商品知识库提问</div>
+    <div class="auth-panel">
+      <NanoLogo :size="28" :name-size="18" />
+      <h1 class="auth-title">创建账号</h1>
+      <p class="auth-sub">注册后即可提问，答案与回执将保存在你的账号下。</p>
 
       <el-form
         ref="formRef"
@@ -78,26 +79,19 @@ async function onSubmit() {
         label-position="top"
         @keyup.enter="onSubmit"
       >
-        <el-form-item prop="username">
-          <el-input v-model="form.username" placeholder="用户名（3~20 位）" :prefix-icon="User" />
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="form.username" placeholder="用户名（3~20 位）" />
         </el-form-item>
-        <el-form-item prop="password">
+        <el-form-item label="密码" prop="password">
           <el-input
             v-model="form.password"
             type="password"
             show-password
             placeholder="密码（至少 8 位，含字母和数字）"
-            :prefix-icon="Lock"
           />
         </el-form-item>
-        <el-form-item prop="confirm">
-          <el-input
-            v-model="form.confirm"
-            type="password"
-            show-password
-            placeholder="再输入一次密码"
-            :prefix-icon="Lock"
-          />
+        <el-form-item label="确认密码" prop="confirm">
+          <el-input v-model="form.confirm" type="password" show-password placeholder="再输入一次密码" />
         </el-form-item>
         <el-button
           type="primary"
@@ -124,31 +118,28 @@ async function onSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  background:
-    radial-gradient(1200px 500px at 20% -10%, rgba(37, 99, 235, 0.18), transparent),
-    radial-gradient(900px 500px at 110% 110%, rgba(16, 185, 129, 0.14), transparent),
-    var(--app-bg);
+  padding: 32px 20px;
+  background: var(--paper);
 }
-.auth-card {
+.auth-panel {
   width: 100%;
-  max-width: 400px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 40px 36px 28px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08);
+  max-width: 440px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+  background: var(--panel);
+  padding: 40px 40px 32px;
 }
-.auth-brand {
-  font-size: 22px;
-  font-weight: 700;
-  text-align: center;
+.auth-title {
+  font-size: var(--fs-26);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 22px 0 6px;
 }
 .auth-sub {
-  margin: 8px 0 28px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-second);
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  margin: 0 0 26px;
+  line-height: 1.75;
 }
 .submit-btn {
   width: 100%;
@@ -156,12 +147,18 @@ async function onSubmit() {
 }
 .auth-footer {
   margin-top: 20px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-second);
+  font-size: var(--fs-13);
+  color: var(--ink-3);
 }
 .auth-link {
-  color: var(--brand);
-  text-decoration: none;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+@media (max-width: 840px) {
+  .auth-panel {
+    padding: 28px 24px 24px;
+  }
 }
 </style>

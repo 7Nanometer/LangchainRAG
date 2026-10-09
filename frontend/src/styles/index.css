@@ -1,26 +1,12 @@
 /**
- * 全局样式 + 浅色/深色两套主题颜色
- * 页面里统一用 var(--xxx) 引用颜色，切主题时整体自动变色
+ * 全局基础样式 —— Nano回执
+ *
+ * 视觉世界：事实面板。三件事在这里定死：
+ *   1. 纸与墨的底色、发丝线、表格数字（所有排版的基础质感）
+ *   2. 浏览器自带的界面（选区、光标、滚动条、聚焦框）也穿这身制服
+ *   3. 唯一的签名动效：回执"打印"（发丝线展开 + 行项落定）
  */
-:root {
-  --app-bg: #f5f7fa;
-  --panel-bg: #ffffff;
-  --text-main: #1f2329;
-  --text-second: #8a919f;
-  --border-color: #e4e7ed;
-  --brand: #2563eb;
-  --sidebar-bg: #ffffff;
-}
-
-html.dark {
-  --app-bg: #101319;
-  --panel-bg: #1a1f28;
-  --text-main: #e6e8eb;
-  --text-second: #9aa3b0;
-  --border-color: #2a3140;
-  --brand: #3b82f6;
-  --sidebar-bg: #161a22;
-}
+@import './tokens.css';
 
 * {
   box-sizing: border-box;
@@ -35,22 +21,306 @@ body,
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
-    'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  background: var(--app-bg);
-  color: var(--text-main);
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+  line-height: var(--lh-body);
+  background: var(--paper);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* 滚动条美化 */
+/* ---- 数字一律等宽对齐（数据排版的基本功） ---- */
+.num,
+.tnum,
+input[type='number'] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ---- 浏览器界面穿制服：选区 ---- */
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* ---- 文本输入光标 ---- */
+input,
+textarea {
+  caret-color: var(--ink);
+}
+
+/* ---- 滚动条：一条发丝，不是一根塑料条 ---- */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.35);
-  border-radius: 4px;
+  background: var(--rule);
+  border: 3px solid var(--paper);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-3);
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ---- 聚焦框：一律墨色细环，键盘可见 ---- */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   签名动效：回执"打印"
+   ============================================================ */
+@keyframes rule-print {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes row-settle {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes caret-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes pulse-ink {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.rule-print {
+  transform-origin: left center;
+  animation: rule-print var(--dur-3) var(--ease) both;
+}
+.row-settle {
+  animation: row-settle var(--dur-2) var(--ease) both;
+}
+
+/* 遵循系统"减少动态效果"设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ============================================================
+   世界语汇：标签 / 数值 / 细线 / 面板
+   ============================================================ */
+
+/* 标签：小号、加字距、次级墨色 —— 营养表上的"粗标签" */
+.u-label {
+  font-size: var(--fs-11);
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+/* 数值：细字重 + 等宽数字 —— "细数值" */
+.u-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+/* 发丝分隔 */
+.u-rule {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 0;
+}
+
+/* 面板：一框发丝，四个小圆角，仅此而已 */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+}
+.panel-pad {
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+}
+.panel-title {
+  font-size: var(--fs-13);
+  font-weight: 700;
+  margin: 0 0 var(--sp-3);
+  letter-spacing: 0.01em;
+}
+
+/* 评分标记块（相关度专用，颜色=数据） */
+.score-block {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  flex-shrink: 0;
+  vertical-align: baseline;
+}
+.score-block.s1 { background: var(--score-1); }
+.score-block.s2 { background: var(--score-2); }
+.score-block.s3 { background: var(--score-3); }
+.score-block.s4 { background: var(--score-4); }
+.score-block.s5 { background: var(--score-5); }
+
+/* 页面通用头（管理页） */
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--rule);
+}
+.page-title {
+  margin: 0;
+  font-size: var(--fs-20);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.page-sub {
+  margin: 2px 0 0;
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+}
+.muted {
+  color: var(--ink-3);
+}
+
+/* ============================================================
+   AI 回答正文（Markdown）排版
+   ============================================================ */
+.md-body {
+  font-size: var(--fs-14);
+  line-height: var(--lh-body);
+  word-break: break-word;
+}
+.md-body p {
+  margin: 0 0 10px;
+}
+.md-body p:last-child {
+  margin-bottom: 0;
+}
+.md-body h1,
+.md-body h2,
+.md-body h3 {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  margin: 18px 0 8px;
+}
+.md-body ul,
+.md-body ol {
+  margin: 6px 0 10px;
+  padding-left: 22px;
+}
+.md-body li {
+  margin: 2px 0;
+}
+.md-body strong {
+  font-weight: 700;
+}
+.md-body code {
+  font-family: 'Cascadia Mono', 'Consolas', 'Courier New', monospace;
+  background: var(--tint);
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-2);
+  padding: 0 4px;
+  font-size: 12.5px;
+}
+.md-body pre {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.md-body pre code {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+.md-body a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--ink-3);
+}
+.md-body a:hover {
+  text-decoration-color: var(--ink);
+}
+.md-body blockquote {
+  margin: 8px 0;
+  padding: 2px 0 2px 12px;
+  border-left: 1px solid var(--rule);
+  color: var(--ink-2);
+}
+.md-body table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 13px;
+}
+.md-body th,
+.md-body td {
+  border: 1px solid var(--rule);
+  padding: 5px 10px;
+  text-align: left;
+}
+.md-body th {
+  background: var(--paper-2);
+  font-weight: 700;
+}
+
+/* 引用角标 [1][2]：可点击的墨色小方块，不是纯装饰 */
+.md-body .cite-ref {
+  display: inline-block;
+  min-width: 15px;
+  height: 15px;
+  line-height: 15px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: var(--r-2);
+  padding: 0 3px;
+  margin: 0 2px;
+  vertical-align: super;
+  cursor: pointer;
+  transition: transform var(--dur-1) var(--ease);
+}
+.md-body .cite-ref:hover {
+  transform: translateY(-1px);
 }

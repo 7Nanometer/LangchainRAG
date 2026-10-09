@@ -115,9 +115,17 @@ async def stream_chat(user_id: int, question: str, conversation_id: int | None):
             return
 
         # ---- 5. 混合检索（向量 + 关键词 → 融合 → 精排）----
+        # retrieval_stats：检索漏斗数据（随 meta 事件披露给前端"回执面板"）
+        retrieval_stats: dict = {}
+        retrieval_t0 = time.perf_counter()
         hits, is_fallback = await asyncio.to_thread(
-            retrieve, question=search_question, top_k=None, query_vector=question_vector
+            retrieve,
+            question=search_question,
+            top_k=None,
+            query_vector=question_vector,
+            stats=retrieval_stats,
         )
+        retrieval_stats["ms"] = int((time.perf_counter() - retrieval_t0) * 1000)
 
         fallback_extra = None
         if is_fallback:
@@ -144,6 +152,7 @@ async def stream_chat(user_id: int, question: str, conversation_id: int | None):
                 "assistant_message_id": assistant_id,
                 "is_fallback": is_fallback,
                 "from_cache": False,
+                "retrieval": retrieval_stats,
             },
         )
         yield sse_event("citations", citations)

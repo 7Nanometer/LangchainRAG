@@ -6,6 +6,7 @@ import { ElMessageBox } from 'element-plus'
 import { Moon, Sunny } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { useThemeStore } from '@/stores/theme'
+import NanoLogo from '@/components/common/NanoLogo.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -42,24 +43,23 @@ async function onUserCommand(command) {
   <div class="main-layout">
     <header class="topbar">
       <div class="brand" @click="router.push('/chat')">
-        <span class="brand-icon">💬</span>
-        <span class="brand-name">知识库智能问答</span>
+        <NanoLogo :size="19" :name-size="14.5" />
       </div>
 
       <div class="topbar-right">
         <el-tooltip :content="themeStore.isDark ? '切换浅色模式' : '切换深色模式'">
           <el-button circle text class="theme-btn" @click="toggleTheme">
-            <el-icon :size="18"><Moon v-if="!themeStore.isDark" /><Sunny v-else /></el-icon>
+            <el-icon :size="16"><Moon v-if="!themeStore.isDark" /><Sunny v-else /></el-icon>
           </el-button>
         </el-tooltip>
 
+        <span class="topbar-divider" aria-hidden="true" />
+
         <el-dropdown trigger="click" @command="onUserCommand">
           <span class="user-chip">
-            <el-avatar :size="28" class="user-avatar">{{ userInitial }}</el-avatar>
+            <el-avatar :size="24" class="user-avatar">{{ userInitial }}</el-avatar>
             <span class="user-name">{{ userStore.username }}</span>
-            <el-tag v-if="userStore.isAdmin" size="small" type="warning" effect="plain">
-              管理员
-            </el-tag>
+            <el-tag v-if="userStore.isAdmin" size="small">管理员</el-tag>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -87,33 +87,28 @@ async function onUserCommand(command) {
   flex-direction: column;
 }
 .topbar {
-  height: 56px;
+  height: 54px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  background: var(--panel-bg);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
 }
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   cursor: pointer;
   user-select: none;
-}
-.brand-icon {
-  font-size: 20px;
-}
-.brand-name {
-  font-size: 16px;
-  font-weight: 700;
 }
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+.topbar-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--rule);
 }
 .user-chip {
   display: flex;
@@ -121,18 +116,22 @@ async function onUserCommand(command) {
   gap: 8px;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 8px;
+  border-radius: var(--r-1);
   outline: none;
+  transition: background var(--dur-1) var(--ease);
 }
 .user-chip:hover {
-  background: rgba(128, 128, 128, 0.1);
+  background: var(--tint);
 }
 .user-avatar {
-  background: var(--brand);
+  background: var(--ink);
+  color: var(--paper);
   font-weight: 600;
+  font-size: 12px;
 }
 .user-name {
-  font-size: 14px;
+  font-size: var(--fs-13);
+  color: var(--ink);
 }
 .page-body {
   flex: 1;

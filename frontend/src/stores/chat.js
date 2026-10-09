@@ -22,6 +22,7 @@ export const useChatStore = defineStore('chat', {
     streamCitations: [],    // 本次引用的资料片段
     streamFallback: false,  // 本次是否为兜底回答
     streamFromCache: false, // 本次是否命中缓存（秒回）
+    streamRetrieval: null,  // 本次检索漏斗数据（回执面板披露用）
     abortCtrl: null,        // 用于停止生成
   }),
 
@@ -108,6 +109,7 @@ export const useChatStore = defineStore('chat', {
               if (this.currentId == null) this.currentId = meta.conversation_id
               this.streamFallback = meta.is_fallback
               this.streamFromCache = !!meta.from_cache
+              this.streamRetrieval = meta.retrieval || null
             },
             onCitations: (citations) => {
               this.streamCitations = citations
@@ -125,6 +127,7 @@ export const useChatStore = defineStore('chat', {
                 feedback: null,
                 is_fallback: this.streamFallback,
                 from_cache: this.streamFromCache,
+                retrieval: this.streamRetrieval || null,
                 latency_ms: done.latency_ms,
                 created_at: new Date().toISOString(),
               })
@@ -139,7 +142,7 @@ export const useChatStore = defineStore('chat', {
                 this.messages.push({
                   id: `err-${Date.now()}`,
                   role: 'assistant',
-                  content: `${this.streamText}\n\n> ⚠️ （回答生成中断）`,
+                  content: `${this.streamText}\n\n（本条回答生成中断，仅保留已生成部分）`,
                   citations: this.streamCitations,
                   feedback: null,
                   created_at: new Date().toISOString(),
@@ -169,7 +172,7 @@ export const useChatStore = defineStore('chat', {
         this.messages.push({
           id: `stopped-${Date.now()}`,
           role: 'assistant',
-          content: `${this.streamText}\n\n> ✋ （已停止生成）`,
+          content: `${this.streamText}\n\n（已停止生成，仅保留已生成部分）`,
           citations: this.streamCitations,
           feedback: null,
           created_at: new Date().toISOString(),
@@ -185,6 +188,7 @@ export const useChatStore = defineStore('chat', {
       this.streamCitations = []
       this.streamFallback = false
       this.streamFromCache = false
+      this.streamRetrieval = null
       this.abortCtrl = null
     },
   },

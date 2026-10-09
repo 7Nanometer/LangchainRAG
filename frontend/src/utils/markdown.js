@@ -19,7 +19,10 @@ const md = new MarkdownIt({
 export function renderMarkdown(text) {
   if (!text) return ''
   let html = md.render(text)
-  // 把 [数字] 引用标记替换成角标样式（LLM 按提示词要求输出这种格式）
-  html = html.replace(/\[(\d{1,2})\]/g, '<sup class="cite-ref">$1</sup>')
+  // 把 [数字] 引用标记替换成可点击角标（键盘也能操作：Enter / 空格）
+  html = html.replace(
+    /\[(\d{1,2})\]/g,
+    '<sup class="cite-ref" role="button" tabindex="0" aria-label="查看引用 $1">$1</sup>',
+  )
   return html
 }

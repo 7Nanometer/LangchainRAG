@@ -1,11 +1,15 @@
 <script setup>
-/** 单条消息：用户气泡 / AI 回答（Markdown + 引用 + 赞踩 + 复制） */
-import { computed } from 'vue'
+/**
+ * 单条消息
+ *   - 用户消息：一张"提交单"（发丝框，右对齐）
+ *   - AI 回答：署名行（签发方）+ 正文（Markdown，[n] 角标可点）+ 答案回执 + 操作行
+ */
+import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { CopyDocument, Service } from '@element-plus/icons-vue'
 import { useChatStore } from '@/stores/chat'
 import { renderMarkdown } from '@/utils/markdown'
-import CitationList from './CitationList.vue'
+import NanoLogo from '@/components/common/NanoLogo.vue'
+import ReceiptPanel from './ReceiptPanel.vue'
 
 const props = defineProps({
   message: { type: Object, required: true },
@@ -15,6 +19,25 @@ const props = defineProps({
 const chat = useChatStore()
 const isUser = computed(() => props.message.role === 'user')
 const html = computed(() => renderMarkdown(props.message.content))
+const panelRef = ref()
+
+/** 点正文里的 [n] 角标 → 展开回执并定位到该条来源 */
+function onBodyClick(e) {
+  const el = e.target.closest?.('.cite-ref')
+  if (!el) return
+  const n = Number(el.textContent)
+  if (n) panelRef.value?.openAt(n)
+}
+
+/** 键盘操作角标（Enter / 空格），与鼠标点击等效 */
+function onBodyKey(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return
+  const el = e.target.closest?.('.cite-ref')
+  if (!el) return
+  e.preventDefault()
+  const n = Number(el.textContent)
+  if (n) panelRef.value?.openAt(n)
+}
 
 async function onCopy() {
   try {
@@ -37,52 +60,58 @@ function onDislike() {
 
 <template>
   <div class="msg-row" :class="isUser ? 'is-user' : 'is-ai'">
-    <div v-if="!isUser" class="ai-avatar">
-      <el-icon :size="16"><Service /></el-icon>
-    </div>
+    <!-- 用户消息：提交单 -->
+    <div v-if="isUser" class="ask-box">{{ message.content }}</div>
 
-    <div class="msg-body">
-      <!-- 用户消息：纯文本气泡 -->
-      <div v-if="isUser" class="bubble user-bubble">{{ message.content }}</div>
+    <!-- AI 回答 -->
+    <div v-else class="answer">
+      <div class="issuer">
+        <NanoLogo :size="13" :name-size="11.5" />
+        <span class="issuer-time" />
+      </div>
 
-      <!-- AI 消息：Markdown 渲染 -->
-      <div v-else class="bubble ai-bubble">
-        <div v-if="message.from_cache" class="cache-badge">⚡ 来自缓存（秒回）</div>
-        <div v-if="!message.content" class="thinking">
-          <span class="dot" /><span class="dot" /><span class="dot" /> 正在查找资料…
-        </div>
-        <div v-else class="md-body" v-html="html" />
-        <span v-if="streaming && message.content" class="cursor">▍</span>
+      <div
+        v-if="message.content"
+        class="md-body"
+        @click="onBodyClick"
+        @keydown="onBodyKey"
+        v-html="html"
+      />
+      <span v-if="streaming && message.content" class="caret" aria-hidden="true" />
 
-        <div v-if="!streaming && message.is_fallback" class="fallback-tip">
-          （本次回答为兜底回答：知识库中未找到相关资料）
-        </div>
+      <div v-if="!message.content" class="retrieving">
+        <span class="retrieving-mark" />
+        <span>正在检索资料</span>
+        <span class="tick">…</span>
+      </div>
 
-        <CitationList v-if="!streaming" :citations="message.citations || []" />
+      <!-- 答案回执（签名动作） -->
+      <ReceiptPanel
+        v-if="!isUser && (message.citations?.length || message.retrieval || !streaming)"
+        ref="panelRef"
+        :message="message"
+        :streaming="streaming"
+      />
 
-        <!-- 操作条（流式生成时隐藏） -->
-        <div v-if="!streaming && message.content" class="msg-ops">
-          <el-button
-            text
-            size="small"
-            :type="message.feedback === 'like' ? 'primary' : ''"
-            @click="onLike"
-          >
-            👍 有用
-          </el-button>
-          <el-button
-            text
-            size="small"
-            :type="message.feedback === 'dislike' ? 'danger' : ''"
-            @click="onDislike"
-          >
-            👎 没用
-          </el-button>
-          <el-button text size="small" :icon="CopyDocument" @click="onCopy">复制</el-button>
-          <span v-if="message.latency_ms" class="latency">
-            {{ (message.latency_ms / 1000).toFixed(1) }}s
-          </span>
-        </div>
+      <!-- 操作行 -->
+      <div v-if="!streaming && message.content" class="ops">
+        <button
+          class="op"
+          :class="{ on: message.feedback === 'like' }"
+          type="button"
+          @click="onLike"
+        >
+          有用
+        </button>
+        <button
+          class="op"
+          :class="{ on: message.feedback === 'dislike' }"
+          type="button"
+          @click="onDislike"
+        >
+          没用
+        </button>
+        <button class="op" type="button" @click="onCopy">复制</button>
       </div>
     </div>
   </div>
@@ -90,135 +119,99 @@ function onDislike() {
 
 <style scoped>
 .msg-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 26px;
 }
 .msg-row.is-user {
+  display: flex;
   justify-content: flex-end;
 }
-.ai-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--brand);
-  color: #fff;
-}
-.msg-body {
-  max-width: min(760px, 82%);
-}
-.bubble {
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 14px;
-  line-height: 1.75;
+
+/* ---- 用户"提交单" ---- */
+.ask-box {
+  max-width: 78%;
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+  padding: 9px 13px;
+  font-size: var(--fs-14);
+  line-height: 1.65;
+  white-space: pre-wrap;
   word-break: break-word;
 }
-.user-bubble {
-  background: var(--brand);
-  color: #fff;
-  border-top-right-radius: 4px;
-  white-space: pre-wrap;
+
+/* ---- AI 回答 ---- */
+.answer {
+  max-width: 100%;
 }
-.ai-bubble {
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-top-left-radius: 4px;
-}
-.md-body :deep(p) {
-  margin: 0 0 8px;
-}
-.md-body :deep(p:last-child) {
-  margin-bottom: 0;
-}
-.md-body :deep(ul),
-.md-body :deep(ol) {
-  margin: 4px 0 8px;
-  padding-left: 22px;
-}
-.md-body :deep(code) {
-  background: rgba(128, 128, 128, 0.12);
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 13px;
-}
-.md-body :deep(pre) {
-  background: rgba(0, 0, 0, 0.06);
-  padding: 10px;
-  border-radius: 8px;
-  overflow-x: auto;
-}
-.cache-badge {
-  display: inline-block;
-  font-size: 11.5px;
-  color: #d97706;
-  background: rgba(217, 119, 6, 0.12);
-  padding: 2px 8px;
-  border-radius: 6px;
-  margin-bottom: 8px;
-}
-.md-body :deep(.cite-ref) {
-  display: inline-block;
-  min-width: 16px;
-  height: 16px;
-  line-height: 16px;
-  text-align: center;
-  font-size: 10.5px;
-  color: #fff;
-  background: var(--brand);
-  border-radius: 4px;
-  padding: 0 3px;
-  margin: 0 2px;
-  vertical-align: super;
-  font-weight: 600;
-}
-.thinking {
+.issuer {
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: var(--text-second);
-  font-size: 13px;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: var(--ink-3);
 }
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-second);
-  animation: blink 1.2s infinite;
-}
-.dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
-@keyframes blink {
-  0%, 80%, 100% { opacity: 0.25; }
-  40% { opacity: 1; }
-}
-.cursor {
-  animation: blink 1s infinite;
-  color: var(--brand);
-}
-.fallback-tip {
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--text-second);
-}
-.msg-ops {
+.retrieving {
   display: flex;
   align-items: center;
-  margin-top: 8px;
-  border-top: 1px dashed var(--border-color);
-  padding-top: 6px;
+  gap: 7px;
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  padding: 2px 0;
 }
-.latency {
-  margin-left: auto;
-  font-size: 11.5px;
-  color: var(--text-second);
+.retrieving-mark {
+  width: 3px;
+  height: 13px;
+  background: var(--ink);
+  animation: pulse-ink 1.1s ease-in-out infinite;
+}
+.tick {
+  animation: caret-blink 1s steps(1) infinite;
+  color: var(--ink-3);
+}
+.caret {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background: var(--ink);
+  vertical-align: -2px;
+  margin-left: 2px;
+  animation: caret-blink 1.06s steps(1) infinite;
+}
+
+/* ---- 操作行 ---- */
+.ops {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 8px;
+}
+.op {
+  font-family: inherit;
+  font-size: var(--fs-11);
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--r-2);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.op:hover {
+  color: var(--ink);
+  background: var(--tint);
+}
+.op.on {
+  color: var(--ink);
+  font-weight: 700;
+}
+.op.on::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background: var(--ink);
+  margin-right: 5px;
+  vertical-align: 1px;
 }
 </style>

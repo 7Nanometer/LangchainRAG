@@ -12,6 +12,7 @@ import 'element-plus/theme-chalk/dark/css-vars.css' // 深色主题支持
 import App from './App.vue'
 import router from './router'
 import './styles/index.css'
+import './styles/element.css' // Element Plus 组件改造层（必须放在最后，覆盖组件库默认皮肤）
 
 const app = createApp(App)
 app.use(createPinia()) // 状态管理（记住登录状态等）

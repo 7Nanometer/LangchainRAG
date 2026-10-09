@@ -1,5 +1,7 @@
 <script setup>
-/** 欢迎面板：新对话时显示，提供几个示例问题方便快速体验 */
+/** 欢迎面板：新对话时显示 —— 一句话讲清机制 + 三个可直接点的示例问题 */
+import NanoLogo from '@/components/common/NanoLogo.vue'
+
 const emit = defineEmits(['ask'])
 
 const examples = [
@@ -12,66 +14,84 @@ const examples = [
 
 <template>
   <div class="welcome">
-    <div class="welcome-icon">💬</div>
-    <h2 class="welcome-title">你好，我是知识库智能客服</h2>
+    <NanoLogo stacked :size="40" :name-size="21" />
+
+    <h2 class="welcome-title">问一句，拿一张回执</h2>
     <p class="welcome-sub">
-      我会先查找商品知识库资料，再回答你的问题，并标注答案的出处
+      先查商品资料再回答；每条回答下方都附一张回执面板——
+      来源、相关度、耗时逐项列出，可随时展开核对原文。
     </p>
 
     <div class="examples">
-      <div class="examples-label">试试这样问我：</div>
-      <div class="example-list">
-        <button v-for="q in examples" :key="q" class="example-btn" @click="emit('ask', q)">
-          {{ q }}
-        </button>
-      </div>
+      <div class="examples-label u-label">试试这样问</div>
+      <button v-for="(q, i) in examples" :key="q" class="example-row" @click="emit('ask', q)">
+        <span class="example-no num">{{ String(i + 1).padStart(2, '0') }}</span>
+        <span class="example-q">{{ q }}</span>
+        <span class="example-arrow">→</span>
+      </button>
     </div>
   </div>
 </template>
 
 <style scoped>
 .welcome {
-  max-width: 560px;
-  margin: 60px auto 0;
-  text-align: center;
-  padding: 0 20px;
-}
-.welcome-icon {
-  font-size: 52px;
+  max-width: 460px;
+  margin: 9vh auto 0;
+  padding: 0 24px;
 }
 .welcome-title {
-  font-size: 21px;
-  margin: 14px 0 8px;
+  font-size: var(--fs-26);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 22px 0 10px;
 }
 .welcome-sub {
-  color: var(--text-second);
-  font-size: 13.5px;
-  margin: 0 0 30px;
+  color: var(--ink-2);
+  font-size: var(--fs-13);
+  line-height: 1.85;
+  margin: 0 0 36px;
 }
 .examples-label {
-  font-size: 12.5px;
-  color: var(--text-second);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
-.example-list {
+.example-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-.example-btn {
-  border: 1px solid var(--border-color);
-  background: var(--panel-bg);
-  color: var(--text-main);
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 13px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--rule);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  text-align: left;
+  padding: 11px 4px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background var(--dur-1) var(--ease);
 }
-.example-btn:hover {
-  border-color: var(--brand);
-  color: var(--brand);
-  transform: translateY(-1px);
+.example-row:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+.example-row:hover {
+  background: var(--tint);
+  color: var(--ink);
+}
+.example-no {
+  color: var(--ink-3);
+  font-size: var(--fs-11);
+}
+.example-q {
+  flex: 1;
+}
+.example-arrow {
+  color: var(--ink-3);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
+}
+.example-row:hover .example-arrow {
+  opacity: 1;
+  transform: translateX(0);
 }
 </style>

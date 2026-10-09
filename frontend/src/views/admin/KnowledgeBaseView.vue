@@ -6,7 +6,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Collection, Edit, FolderOpened, Plus, Delete } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import { createKb, deleteKb, listKbs, updateKb } from '@/api/admin'
 import { formatTime } from '@/utils/format'
 
@@ -87,40 +87,44 @@ onMounted(load)
 <template>
   <div v-loading="loading">
     <div class="page-head">
-      <h2 class="page-title">知识库管理</h2>
+      <div>
+        <h2 class="page-title">知识库</h2>
+        <p class="page-sub">商品资料的收录与索引</p>
+      </div>
       <el-button type="primary" :icon="Plus" @click="openCreate">新建知识库</el-button>
     </div>
 
-    <el-empty v-if="!loading && kbs.length === 0" description="还没有知识库，点右上角「新建知识库」开始" />
+    <el-empty
+      v-if="!loading && kbs.length === 0"
+      description="还没有知识库，点右上角「新建知识库」开始"
+    />
 
     <div class="kb-grid">
       <div v-for="kb in kbs" :key="kb.id" class="kb-card" @click="router.push(`/admin/kb/${kb.id}`)">
-        <div class="kb-card-head">
-          <el-icon :size="22" class="kb-icon"><Collection /></el-icon>
-          <div class="kb-name">{{ kb.name }}</div>
+        <div class="kb-head">
+          <span class="kb-name">{{ kb.name }}</span>
+          <span class="kb-counts num">{{ kb.document_count }} 份 · {{ kb.chunk_count }} 段</span>
         </div>
         <div class="kb-desc">{{ kb.description || '（暂无描述）' }}</div>
-        <div class="kb-meta">
-          <el-tag size="small" effect="plain">{{ kb.document_count }} 份文档</el-tag>
-          <el-tag size="small" type="info" effect="plain">{{ kb.chunk_count }} 个片段</el-tag>
-        </div>
         <div class="kb-foot">
-          <span class="kb-time">{{ formatTime(kb.created_at) }}</span>
+          <span class="kb-time num">{{ formatTime(kb.created_at) }}</span>
           <span class="kb-actions" @click.stop>
-            <el-button size="small" text :icon="FolderOpened" @click="router.push(`/admin/kb/${kb.id}`)">
+            <button class="kb-op" type="button" @click="router.push(`/admin/kb/${kb.id}`)">
               管理资料
-            </el-button>
-            <el-button size="small" text :icon="Edit" @click="openEdit(kb)">编辑</el-button>
-            <el-button size="small" text type="danger" :icon="Delete" @click="onDelete(kb)">
-              删除
-            </el-button>
+            </button>
+            <button class="kb-op" type="button" @click="openEdit(kb)">编辑</button>
+            <button class="kb-op danger" type="button" @click="onDelete(kb)">删除</button>
           </span>
         </div>
       </div>
     </div>
 
-    <el-dialog v-model="dialog.visible" :title="dialog.isEdit ? '编辑知识库' : '新建知识库'" width="440px">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
+    <el-dialog
+      v-model="dialog.visible"
+      :title="dialog.isEdit ? '编辑知识库' : '新建知识库'"
+      width="460px"
+    >
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
         <el-form-item label="名称" prop="name">
           <el-input v-model="form.name" placeholder="例如：电商商品知识库" maxlength="50" />
         </el-form-item>
@@ -143,73 +147,78 @@ onMounted(load)
 </template>
 
 <style scoped>
-.page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.page-title {
-  margin: 0;
-  font-size: 18px;
-}
 .kb-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  gap: var(--sp-4);
 }
 .kb-card {
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);
+  padding: 16px 16px 10px;
   cursor: pointer;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: border-color var(--dur-2) var(--ease);
 }
 .kb-card:hover {
-  border-color: var(--brand);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  border-color: var(--ink-3);
 }
-.kb-card-head {
+.kb-head {
   display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.kb-icon {
-  color: var(--brand);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
 .kb-name {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--fs-16);
+  font-weight: 700;
+}
+.kb-counts {
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  flex-shrink: 0;
 }
 .kb-desc {
-  margin: 10px 0;
-  font-size: 13px;
-  color: var(--text-second);
+  margin: 8px 0 12px;
+  font-size: var(--fs-13);
+  color: var(--ink-2);
   min-height: 20px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.kb-meta {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
-}
 .kb-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px dashed var(--border-color);
-  padding-top: 10px;
+  border-top: 1px solid var(--rule-2);
+  padding: 6px 0;
 }
 .kb-time {
-  font-size: 12px;
-  color: var(--text-second);
+  font-size: var(--fs-11);
+  color: var(--ink-3);
 }
 .kb-actions {
   display: flex;
   gap: 2px;
+}
+.kb-op {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+  padding: 3px 8px;
+  border-radius: var(--r-2);
+  cursor: pointer;
+  transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.kb-op:hover {
+  color: var(--ink);
+  background: var(--tint);
+}
+.kb-op.danger:hover {
+  color: var(--stamp);
 }
 </style>

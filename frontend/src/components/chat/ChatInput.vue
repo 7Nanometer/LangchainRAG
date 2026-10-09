@@ -1,5 +1,5 @@
 <script setup>
-/** 输入框：Enter 发送 / Shift+Enter 换行；生成中变为"停止"按钮 */
+/** 输入区：Enter 发送 / Shift+Enter 换行；生成中变为"停止" */
 import { ref } from 'vue'
 import { Promotion } from '@element-plus/icons-vue'
 
@@ -38,52 +38,62 @@ function onKeydown(e) {
         type="textarea"
         :autosize="{ minRows: 1, maxRows: 6 }"
         resize="none"
-        placeholder="输入你的问题，回车发送（Shift+回车换行）"
+        placeholder="写下你的问题，回车发送（Shift＋回车换行）"
         @keydown="onKeydown"
       />
       <el-button
         v-if="!streaming"
         class="send-btn"
         type="primary"
-        :icon="Promotion"
         :disabled="!text.trim()"
         @click="onSend"
       >
         发送
       </el-button>
-      <el-button v-else class="send-btn" type="danger" plain @click="onSend">停止生成</el-button>
+      <el-button v-else class="send-btn stop-btn" @click="onSend">停止生成</el-button>
     </div>
-    <div class="input-tip">回答由 AI 根据知识库资料生成，请注意甄别 · 引用片段可在回答下方展开查看</div>
+    <div class="input-tip">
+      回答由 AI 依据知识库资料生成 · 引用与指标可在回答下方的回执面板中逐项核对
+    </div>
   </div>
 </template>
 
 <style scoped>
 .input-area {
-  padding: 10px 20px 14px;
-  border-top: 1px solid var(--border-color);
-  background: var(--panel-bg);
+  padding: 12px 24px 14px;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
 }
 .input-box {
   display: flex;
   gap: 10px;
   align-items: flex-end;
+  max-width: 820px;
+  margin: 0 auto;
 }
 .input-box :deep(.el-textarea__inner) {
-  box-shadow: none;
-  background: var(--app-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 14px;
+  padding: 9px 12px;
+  font-size: var(--fs-14);
+  line-height: 1.65;
 }
 .send-btn {
-  height: 40px;
+  height: 38px;
   flex-shrink: 0;
+  padding: 0 20px;
+}
+.stop-btn {
+  color: var(--ink-2);
+  border-color: var(--rule);
+}
+.stop-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--tint);
 }
 .input-tip {
-  margin-top: 6px;
-  font-size: 11.5px;
-  color: var(--text-second);
-  text-align: center;
+  max-width: 820px;
+  margin: 7px auto 0;
+  font-size: var(--fs-11);
+  color: var(--ink-3);
 }
 </style>
